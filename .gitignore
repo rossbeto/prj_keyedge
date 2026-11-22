@@ -30,3 +30,6 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# jqwik failure database (local test state)
+.jqwik-database
