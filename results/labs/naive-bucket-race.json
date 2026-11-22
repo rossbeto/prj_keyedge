@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "experiment": "naive-bucket-race",
+  "hypothesis": "naive read-compute-write bucket over-admits under contention; CAS limiters never do",
+  "verdict": "confirmed",
+  "naive_over_admissions": 23825593,
+  "naive_samples": 196950548,
+  "naive_over_admission_ratio": 0.121,
+  "jcstress_runs": {
+    "planned": 268,
+    "passed": 268,
+    "failed": 0
+  },
+  "forbidden_outcomes_in_correct_limiters": {},
+  "recorded_at": "2026-11-22T20:12:30+00:00",
+  "git": "82e68d9"
+}

@@ -37,8 +37,8 @@ pit: ## Mutation tests: make pit M=libs:keyformat
 jcstress: ## jcstress: make jcstress M=libs:ratelimit [MODE=quick]
 	$(GRADLE) :$(M):jcstress -Pjcstress.mode=$(or $(MODE),quick)
 
-jmh: ## JMH benchmarks: make jmh M=libs:ratelimit
-	$(GRADLE) :$(M):jmh
+jmh: ## JMH benchmarks: make jmh M=libs:ratelimit [B=<regex>] (never run other builds meanwhile)
+	$(GRADLE) :$(M):jmh $(if $(B),-Pjmh.includes=$(B))
 
 terms: ## Forbidden-terms scan (working tree + commit messages)
 	python3 scripts/forbidden_terms.py check --history
@@ -71,3 +71,18 @@ emu-image: ## Rebuild the AWS Emulator image from the LATEST package (never pinn
 
 emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 --with pyyaml scripts/emulator-smoke/smoke.py $(TARGET) )
+
+## ---- Lab notebook (experiments: hypothesis -> measurement -> verdict) --------------------
+.PHONY: lab
+RUN_ID := $(shell date +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null)
+lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost
+	@case "$(E)" in \
+	  naive-bucket-race) \
+	    $(GRADLE) :libs:ratelimit:jcstress -Pjcstress.mode=$(or $(MODE),quick) -Pjcstress.tests='.*Bucket.*|.*Gcra.*|.*Permit.*' > build/jcstress-naive-bucket-race.log 2>&1 || true; \
+	    python3 lab/jcstress_verdict.py build/jcstress-naive-bucket-race.log results/labs/naive-bucket-race.json ;; \
+	  limiter-cost) \
+	    $(GRADLE) :libs:ratelimit:jmh && \
+	    python3 lab/jmh_verdict.py libs/ratelimit/build/results/jmh/results.json results/jmh/$(RUN_ID) && \
+	    cp results/jmh/$(RUN_ID)/limiter-cost.json results/labs/limiter-cost.json ;; \
+	  *) echo "unknown experiment '$(E)' (naive-bucket-race | limiter-cost)"; exit 2 ;; \
+	esac

@@ -4,7 +4,7 @@
 > *how do you issue, store and rotate API keys safely, and how does a small sidecar next to every
 > service authenticate, rate-limit and protect it without becoming the outage itself?*
 
-**Status:** Phase 002 of 16: build, guardrails, emulators, and the `keyformat` + `problem` libraries. The services arrive from Phase 005.
+**Status:** Phase 003 of 16: build, guardrails, emulators, `keyformat` + `problem`, and `ratelimit` (jcstress-proven, JMH-measured). The services arrive from Phase 005.
 
 ## What it will contain
 

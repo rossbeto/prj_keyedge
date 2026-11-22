@@ -7,6 +7,9 @@ val jcstress: SourceSet = sourceSets.create("jcstress") {
     runtimeClasspath += sourceSets["main"].output
 }
 
+configurations.named("jcstressImplementation") { extendsFrom(configurations["implementation"]) }
+configurations.named("jcstressRuntimeOnly") { extendsFrom(configurations["runtimeOnly"]) }
+
 dependencies {
     "jcstressImplementation"(catalog.lib("jcstress-core"))
     "jcstressAnnotationProcessor"(catalog.lib("jcstress-core"))
@@ -23,6 +26,10 @@ tasks.register<JavaExec>("jcstress") {
     val mode = providers.gradleProperty("jcstress.mode").orElse("quick")
     val filter = providers.gradleProperty("jcstress.tests").orElse(".*")
     val out = layout.buildDirectory.dir("reports/jcstress")
-    args = listOf("-m", mode.get(), "-t", filter.get(), "-r", out.get().asFile.absolutePath)
+    jvmArgs("--enable-native-access=ALL-UNNAMED")
+    args = listOf(
+        "-m", mode.get(), "-t", filter.get(), "-r", out.get().asFile.absolutePath,
+        "-jvmArgsPrepend", "--enable-native-access=ALL-UNNAMED",
+    )
     workingDir = layout.buildDirectory.get().asFile
 }

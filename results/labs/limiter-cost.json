@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "experiment": "limiter-cost",
+  "hypothesis": "GCRA < ~100 ns uncontended; <= 10x with 16 threads on one key; within 2x of Bucket4j",
+  "verdict": "confirmed",
+  "checks": {
+    "uncontended_under_100ns": true,
+    "contended_within_10x": true,
+    "within_2x_of_bucket4j": true
+  },
+  "ns_per_op": {
+    "aimdAcquireRelease": 16.18,
+    "bucket4jContendedOneKey": 155.52,
+    "bucket4jUncontended": 38.25,
+    "fixedAcquireRelease": 15.93,
+    "gcraContendedOneKey": 139.97,
+    "gcraUncontended": 23.58,
+    "keyedManyKeys": 491.29,
+    "packedContendedOneKey": 222.68,
+    "packedUncontended": 36.12,
+    "plainMapManyKeys": 152.26
+  },
+  "ns_per_op_error": {
+    "aimdAcquireRelease": 2.39,
+    "bucket4jContendedOneKey": 11.63,
+    "bucket4jUncontended": 5.13,
+    "fixedAcquireRelease": 2.3,
+    "gcraContendedOneKey": 11.19,
+    "gcraUncontended": 1.55,
+    "keyedManyKeys": 75.13,
+    "packedContendedOneKey": 29.19,
+    "packedUncontended": 7.73,
+    "plainMapManyKeys": 17.43
+  },
+  "ratios": {
+    "gcra_contended_vs_uncontended": 5.94,
+    "gcra_vs_bucket4j_uncontended": 0.62,
+    "gcra_vs_bucket4j_contended": 0.9,
+    "packed_vs_gcra_uncontended": 1.53,
+    "keyed_100k_vs_single_key": 20.83,
+    "aimd_vs_fixed": 1.02
+  },
+  "environment": {
+    "cpu": "Intel(R) Core(TM) Ultra 7 265U",
+    "cpus": 14,
+    "kernel": "6.6.87.2-microsoft-standard-WSL2",
+    "jdk": "25.0.5.1",
+    "vm": "OpenJDK 64-Bit Server VM 25.0.5.1+2-LTS",
+    "jmh": "1.37",
+    "forks": 2,
+    "git": "82e68d9"
+  },
+  "recorded_at": "2026-11-22T21:44:02+00:00"
+}
