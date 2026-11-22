@@ -4,12 +4,21 @@ plugins {
     id("keyedge.pit")
 }
 application { mainClass = "dev.keyedge.keys.Application" }
+// Incremental annotation processing drops Javadoc descriptions from the generated OpenAPI document,
+// which made the contract snapshot depend on how the last build ran: full processing only.
+micronaut { processing { incremental(false) } }
+tasks.named<JavaCompile>("compileJava") { options.isIncremental = false }
+// ./gradlew :services:keys:test -PupdateSnapshots=true rewrites contracts/openapi/keys.yml (review the diff).
+tasks.withType<Test>().configureEach {
+    systemProperty("keyedge.updateSnapshots", providers.gradleProperty("updateSnapshots").getOrElse("false"))
+}
 keyedgeCoverage {
     minimum = 0.85
     // Adapters are covered by the contract suites on both emulators (make test-aws), wiring by the API tests.
     excludes = listOf("**/adapters/**", "**/wiring/**", "**/Application*")
 }
 dependencies {
+    runtimeOnly(project(":libs:ops"))
     implementation(project(":libs:keyformat"))
     implementation(project(":libs:problem-micronaut"))
     implementation(project(":libs:awstarget"))

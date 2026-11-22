@@ -1,0 +1,7 @@
+name: slow-close
+seed: 19
+endpoints:
+  pricing:
+    latency: { kind: fixed, ms: 10 }
+    slowClose: { rate: 0.5, pauseMs: 3000 }
+  stock: { latency: { kind: fixed, ms: 10 } }

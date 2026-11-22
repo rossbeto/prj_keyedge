@@ -1,0 +1,7 @@
+name: healthy
+seed: 1
+endpoints:
+  pricing: { latency: { kind: uniform, minMs: 10, maxMs: 30 } }
+  stock:   { latency: { kind: uniform, minMs: 5, maxMs: 20 } }
+  fx:      { latency: { kind: uniform, minMs: 5, maxMs: 15 } }
+  reservations: { latency: { kind: fixed, ms: 20 } }

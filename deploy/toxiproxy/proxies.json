@@ -1,0 +1,6 @@
+[
+  {"name": "pricing", "listen": "0.0.0.0:15211", "upstream": "upstream-sim:15201", "enabled": true},
+  {"name": "stock",   "listen": "0.0.0.0:15212", "upstream": "upstream-sim:15201", "enabled": true},
+  {"name": "fx",      "listen": "0.0.0.0:15213", "upstream": "upstream-sim:15201", "enabled": true},
+  {"name": "keys",    "listen": "0.0.0.0:15214", "upstream": "keys:15100",         "enabled": true}
+]

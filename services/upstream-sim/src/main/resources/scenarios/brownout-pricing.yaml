@@ -1,0 +1,10 @@
+name: brownout-pricing
+seed: 42
+endpoints:
+  pricing:
+    latency: { kind: lognormal, medianMs: 40, p99Ms: 900 }
+    errors:  [ { status: 503, rate: 0.20, retryAfterSeconds: 1 } ]
+  stock: { latency: { kind: fixed, ms: 15 } }
+  fx:
+    latency: { kind: uniform, minMs: 5, maxMs: 30 }
+    errors:  [ { status: 429, rate: 0.05, retryAfterSeconds: 2 } ]

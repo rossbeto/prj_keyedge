@@ -1,0 +1,15 @@
+micronaut:
+  application:
+    name: upstream-sim
+  server:
+    port: 15201
+    host: ${KEYEDGE_BIND:127.0.0.1}
+endpoints:
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS
+    # The working directory may not be readable by the container user (e.g. the host UID for AWS
+    # Emulator files): measure the writable tmpfs instead.
+    disk-space:
+      path: /tmp

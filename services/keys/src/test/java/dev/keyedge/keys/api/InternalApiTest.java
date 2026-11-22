@@ -41,14 +41,21 @@ class InternalApiTest implements TestPropertyProvider {
   }
 
   private MutableHttpRequest<String> signed(String path, String body, String caller, Instant at) {
+    String nonce = java.util.UUID.randomUUID().toString();
     String sig =
         InternalSignature.sign(
-            FakesFactory.EDGE_CREDENTIAL, "POST", path, at, body.getBytes(StandardCharsets.UTF_8));
+            FakesFactory.EDGE_CREDENTIAL,
+            "POST",
+            path,
+            at,
+            nonce,
+            body.getBytes(StandardCharsets.UTF_8));
     return HttpRequest.POST(path, body)
         .contentType(MediaType.APPLICATION_JSON_TYPE)
         .header(InternalSignature.CALLER, caller)
         .header(InternalSignature.TIMESTAMP, Long.toString(at.getEpochSecond()))
-        .header(InternalSignature.SIGNATURE, sig);
+        .header(InternalSignature.SIGNATURE, sig)
+        .header(InternalSignature.NONCE, nonce);
   }
 
   private String fullKey() {

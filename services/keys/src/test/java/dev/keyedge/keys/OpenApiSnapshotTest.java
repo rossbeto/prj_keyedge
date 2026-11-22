@@ -11,8 +11,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The OpenAPI document generated at compile time must match the committed contract
- * (contracts/openapi/keys.yml). Intentional API changes: run with -Dkeyedge.updateSnapshots=true
- * and review the diff.
+ * (contracts/openapi/keys.yml). Intentional API changes: run with -PupdateSnapshots=true and review
+ * the diff.
  */
 class OpenApiSnapshotTest {
   private static final Path CONTRACT = Path.of("../../contracts/openapi/keys.yml");

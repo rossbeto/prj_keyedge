@@ -44,3 +44,82 @@ services:
     volumes:
       - ${HOME}/.aws/emulator/15297:/home/emulator/.aws/emulator/15297
     mem_limit: 1g
+
+  # ---- Services (JVM images from deploy/Dockerfile.jvm; make images) -------------------------
+  issuer:
+    image: keyedge/issuer:dev
+    command: ["dev.keyedge.issuer.Application"]
+    environment:
+      MICRONAUT_SERVER_HOST: 0.0.0.0
+    ports: ["127.0.0.1:15110:15110"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app/lib/*", "dev.keyedge.ops.HealthProbe", "http://127.0.0.1:15110/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keys:
+    image: keyedge/keys:dev
+    command: ["dev.keyedge.keys.Application"]
+    # The user's UID: AWS Emulator's per-run files are mode 600 (unused with Floci).
+    user: "${KEYEDGE_UID:-65532}:${KEYEDGE_GID:-65532}"
+    environment:
+      MICRONAUT_SERVER_HOST: 0.0.0.0
+      MICRONAUT_ENVIRONMENTS: local
+      KEYEDGE_ISSUER_JWKS: http://issuer:15110/.well-known/jwks.json
+      KEYEDGE_AWS_TARGET: ${KEYEDGE_AWS_TARGET:-floci}
+      KEYEDGE_AWS_ENDPOINT: ${KEYEDGE_CONTAINER_AWS_ENDPOINT:-http://floci:4566}
+      # AWS Emulator's certificate names only localhost/127.0.0.1: connect to the container, verify "localhost".
+      KEYEDGE_AWS_CONNECT_HOST: ${KEYEDGE_CONTAINER_CONNECT_HOST:-}
+      KEYEDGE_AWS_EMULATOR_DIR: /emulator
+    volumes:
+      - ${HOME}/.aws/emulator/15297:/emulator:ro
+    ports: ["127.0.0.1:15100:15100"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+    depends_on:
+      issuer: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app/lib/*", "dev.keyedge.ops.HealthProbe", "http://127.0.0.1:15100/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  upstream-sim:
+    image: keyedge/upstream-sim:dev
+    command: ["dev.keyedge.sim.Application"]
+    environment:
+      MICRONAUT_SERVER_HOST: 0.0.0.0
+    ports: ["127.0.0.1:15201:15201"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 384m
+    healthcheck:
+      test: ["CMD", "java", "-cp", "/app/lib/*", "dev.keyedge.ops.HealthProbe", "http://127.0.0.1:15201/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy@sha256:9378ed52a28bc50edc1350f936f518f31fa95f0d15917d6eb40b8e376d1a214e
+    command: ["-host=0.0.0.0", "-config=/config/proxies.json"]
+    volumes: ["./toxiproxy/proxies.json:/config/proxies.json:ro"]
+    ports:
+      - "127.0.0.1:15474:8474"
+      - "127.0.0.1:15211-15214:15211-15214"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    depends_on:
+      upstream-sim: { condition: service_healthy }

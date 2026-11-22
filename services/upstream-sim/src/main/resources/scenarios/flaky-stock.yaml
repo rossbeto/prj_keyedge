@@ -1,0 +1,8 @@
+name: flaky-stock
+seed: 11
+endpoints:
+  pricing: { latency: { kind: uniform, minMs: 10, maxMs: 30 } }
+  stock:
+    latency: { kind: uniform, minMs: 5, maxMs: 40 }
+    errors:  [ { status: 500, rate: 0.30 }, { status: 503, rate: 0.10, retryAfterSeconds: 1 } ]
+  fx: { latency: { kind: fixed, ms: 10 } }

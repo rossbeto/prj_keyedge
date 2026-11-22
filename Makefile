@@ -111,3 +111,47 @@ seed: ## Create table + secrets on the TARGET emulator (until CDK does it, Phase
 
 run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
 	( . <(scripts/aws-env.sh $(TARGET)) && KEYEDGE_AWS_TARGET=$(TARGET) MICRONAUT_ENVIRONMENTS=local $(GRADLE) --no-configuration-cache :services:$(S):run )
+
+## ---- Images and the compose stack ---------------------------------------------------------
+SERVICES := issuer keys upstream-sim
+COMPOSE := docker compose -f deploy/compose.yaml
+ifeq ($(TARGET),aws-emulator)
+CONTAINER_ENV := KEYEDGE_AWS_TARGET=aws-emulator KEYEDGE_CONTAINER_AWS_ENDPOINT=https://localhost:15297 KEYEDGE_CONTAINER_CONNECT_HOST=aws-emulator KEYEDGE_UID=$(shell id -u) KEYEDGE_GID=$(shell id -g)
+else
+CONTAINER_ENV := KEYEDGE_AWS_TARGET=floci KEYEDGE_CONTAINER_AWS_ENDPOINT=http://floci:4566
+endif
+.PHONY: images image-size up stop logs ps chaos chaos-reset
+images: ## Build the JVM images (Gradle distribution on the host, then deploy/Dockerfile.jvm)
+	$(GRADLE) $(foreach s,$(SERVICES),:services:$(s):installDist)
+	$(foreach s,$(SERVICES),docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE=$(s) -t keyedge/$(s):dev . &&) true
+
+image-size: ## Fail if a JVM image exceeds its budget (MB)
+	@scripts/image_size.sh keyedge/issuer:dev 110 keyedge/keys:dev 125 keyedge/upstream-sim:dev 110
+
+up: ## Emulator + seed + services (TARGET=floci|aws-emulator); ports 127.0.0.1:15xxx
+	scripts/emu.sh up $(TARGET)
+	$(MAKE) --no-print-directory seed TARGET=$(TARGET)
+	$(CONTAINER_ENV) $(COMPOSE) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy
+
+stop: ## Stop the services (emulators keep running: make emu-down)
+	$(COMPOSE) stop issuer keys upstream-sim toxiproxy
+
+logs: ## Follow logs: make logs S=keys
+	$(COMPOSE) logs -f $(S)
+
+ps: ## Containers of the stack
+	$(COMPOSE) ps
+
+chaos: ## Switch the simulator scenario: make chaos S=brownout-pricing
+	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=$(S)" && echo
+
+chaos-reset: ## Healthy scenario and zeroed counters; Toxiproxy toxics cleared by scripts/toxics.sh
+	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=healthy" > /dev/null && curl -sf -X POST http://127.0.0.1:15201/__reset && echo
+	scripts/toxics.sh clear
+
+.PHONY: demo calibrate
+demo: ## Walk through the running stack: token, create, replay, signed verify, usage, revoke
+	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/demo.py )
+
+calibrate: ## k6 open-model load on upstream-sim alone: can the bench's downstream keep up? (Phase 006)
+	scripts/calibrate.sh

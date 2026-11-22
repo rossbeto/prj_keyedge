@@ -1,0 +1,5 @@
+name: token-expiry-storm
+seed: 17
+token: { ttlSeconds: 5, issueLatency: { kind: fixed, ms: 200 } }
+endpoints:
+  pricing: { latency: { kind: uniform, minMs: 10, maxMs: 30 } }

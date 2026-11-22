@@ -14,9 +14,9 @@ import java.time.Instant;
 import java.time.InstantSource;
 
 /**
- * Checks the HMAC signature of an internal request (D-25): known caller, body/path/method signed,
- * timestamp within the skew, and the signature not seen before (replay cache spanning twice the
- * skew). The same 401 for every failure: no hint which part was wrong.
+ * Checks the HMAC signature of an internal request (D-25): known caller, body/path/method/nonce
+ * signed, timestamp within the skew, and the signature not seen before (replay cache spanning twice
+ * the skew). The same 401 for every failure: no hint which part was wrong.
  */
 public final class InternalAuth {
   private final CallerCredentials callers;
@@ -38,7 +38,8 @@ public final class InternalAuth {
     String caller = headers.get(InternalSignature.CALLER);
     String ts = headers.get(InternalSignature.TIMESTAMP);
     String signature = headers.get(InternalSignature.SIGNATURE);
-    if (caller == null || ts == null || signature == null) {
+    String nonce = headers.get(InternalSignature.NONCE);
+    if (caller == null || ts == null || signature == null || nonce == null) {
       throw rejected();
     }
     long epoch;
@@ -51,11 +52,13 @@ public final class InternalAuth {
     boolean valid =
         InternalSignature.verify(
             credential,
-            request.getMethodName(),
-            request.getPath(),
-            Instant.ofEpochSecond(epoch),
-            body.getBytes(StandardCharsets.UTF_8),
-            signature,
+            new InternalSignature.SignedRequest(
+                request.getMethodName(),
+                request.getPath(),
+                Instant.ofEpochSecond(epoch),
+                nonce,
+                body.getBytes(StandardCharsets.UTF_8),
+                signature),
             clock.instant(),
             skew);
     if (!valid || seen.asMap().putIfAbsent(signature, Boolean.TRUE) != null) {

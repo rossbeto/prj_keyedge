@@ -19,6 +19,11 @@ endpoints:
   health:
     enabled: true
     sensitive: false
+    details-visible: ANONYMOUS
+    # The working directory may not be readable by the container user (e.g. the host UID for AWS
+    # Emulator files): measure the writable tmpfs instead.
+    disk-space:
+      path: /tmp
 keyedge:
   keys:
     table: ${KEYEDGE_KEYS_TABLE:keyedge-keys}

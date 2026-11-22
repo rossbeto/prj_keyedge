@@ -3,6 +3,7 @@ plugins { id("keyedge.micronaut-service") }
 application { mainClass = "dev.keyedge.issuer.Application" }
 keyedgeCoverage { excludes = listOf("**/wiring/**", "**/Application*") }
 dependencies {
+    runtimeOnly(project(":libs:ops"))
     implementation(project(":libs:keyformat"))
     implementation(project(":libs:problem-micronaut"))
     implementation("io.micronaut:micronaut-http-server-netty")

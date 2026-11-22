@@ -189,6 +189,7 @@ components:
           type: string
           format: date-time
           nullable: true
+      description: POST /v1/keys.
     Dtos.KeyPage:
       required:
       - items
@@ -201,6 +202,7 @@ components:
         next:
           type: string
           nullable: true
+      description: A page of keys.
     Dtos.KeyView:
       required:
       - createdAt
@@ -245,6 +247,7 @@ components:
         version:
           type: integer
           format: int64
+      description: A key's metadata.
     Dtos.KeyWithSecret:
       required:
       - keyId
@@ -262,6 +265,7 @@ components:
           - $ref: "#/components/schemas/Dtos.KeyView"
         keyId:
           type: string
+      description: "A key with its full text: returned once, at creation or rotation."
     Dtos.RateLimit:
       required:
       - burst
@@ -274,6 +278,7 @@ components:
         burst:
           type: integer
           format: int64
+      description: Rate limit attached to a key.
     Dtos.Rotate:
       type: object
       properties:
@@ -281,6 +286,7 @@ components:
           type: integer
           format: int64
           nullable: true
+      description: "POST /v1/keys/{id}/rotate."
     Dtos.Usage:
       required:
       - allowed
@@ -300,6 +306,7 @@ components:
         rejected:
           type: integer
           format: int64
+      description: One usage bucket.
     Dtos.Verdict:
       required:
       - keyId
@@ -330,3 +337,4 @@ components:
           type: string
           format: date-time
           nullable: true
+      description: The verdict for a sidecar.

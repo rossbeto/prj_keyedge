@@ -1,0 +1,6 @@
+name: slow-tail
+seed: 7
+endpoints:
+  pricing: { latency: { kind: lognormal, medianMs: 25, p99Ms: 800 } }
+  stock:   { latency: { kind: lognormal, medianMs: 15, p99Ms: 400 } }
+  fx:      { latency: { kind: bimodal, fastMs: 10, slowMs: 1500, slowRate: 0.02 } }

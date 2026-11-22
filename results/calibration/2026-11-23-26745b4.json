@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "what": "upstream-sim alone, healthy scenario (stock 5-20 ms), k6 constant-arrival-rate",
+  "cpus": 14,
+  "rows": [
+    {
+      "offered_rps": 500,
+      "achieved_rps": 499.5,
+      "p50_ms": 14.0,
+      "p99_ms": 22.88,
+      "max_ms": 46.53,
+      "dropped_iterations": 0,
+      "failed_ratio": 0,
+      "sim_in_flight_max": 22
+    },
+    {
+      "offered_rps": 1000,
+      "achieved_rps": 999.0,
+      "p50_ms": 13.64,
+      "p99_ms": 21.53,
+      "max_ms": 87.37,
+      "dropped_iterations": 0,
+      "failed_ratio": 0,
+      "sim_in_flight_max": 49
+    },
+    {
+      "offered_rps": 2000,
+      "achieved_rps": 1997.7,
+      "p50_ms": 13.6,
+      "p99_ms": 28.1,
+      "max_ms": 74.21,
+      "dropped_iterations": 0,
+      "failed_ratio": 0,
+      "sim_in_flight_max": 108
+    },
+    {
+      "offered_rps": 4000,
+      "achieved_rps": 3996.2,
+      "p50_ms": 15.62,
+      "p99_ms": 54.04,
+      "max_ms": 233.95,
+      "dropped_iterations": 0,
+      "failed_ratio": 0,
+      "sim_in_flight_max": 189
+    }
+  ]
+}

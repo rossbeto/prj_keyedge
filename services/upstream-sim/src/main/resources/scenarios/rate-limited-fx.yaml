@@ -1,0 +1,6 @@
+name: rate-limited-fx
+seed: 13
+endpoints:
+  fx:
+    latency: { kind: fixed, ms: 10 }
+    errors:  [ { status: 429, rate: 0.50, retryAfterSeconds: 2 } ]

@@ -1,0 +1,9 @@
+# One runtime image for every JVM service. The Gradle distribution is built on the host first
+# (make images = :services:<svc>:installDist), then copied here: no Gradle or dependency download inside
+# the image build. Distroless: no shell, non-root (uid 65532), Java 25.
+FROM gcr.io/distroless/java25-debian13@sha256:59bbb349c9752fc57b75744b41b1614c9dabe8bb4869523aabd5a4288f6c09a0
+ARG SERVICE
+COPY services/${SERVICE}/build/install/${SERVICE}/lib/ /app/lib/
+USER 65532:65532
+# The main class comes from compose `command:` (exec-form ENTRYPOINT/CMD cannot expand build args).
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-XX:+ExitOnOutOfMemoryError", "-XX:+UseSerialGC", "-cp", "/app/lib/*"]
