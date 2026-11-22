@@ -123,6 +123,44 @@ public final class KeyedgeArchitectureRules {
         .allowEmptyShould(true);
   }
 
+  /**
+   * A pure library depends only on the JDK, JSpecify and the packages it names (its own package is
+   * always allowed): no framework, no AWS, no I/O library.
+   */
+  public static ArchRule pureLibrary(String base, String... alsoAllowed) {
+    String[] allowed = new String[alsoAllowed.length + 4];
+    allowed[0] = "java..";
+    allowed[1] = "javax.crypto.."; // JDK crypto lives under javax
+    allowed[2] = "org.jspecify..";
+    allowed[3] = base + "..";
+    System.arraycopy(alsoAllowed, 0, allowed, 4, alsoAllowed.length);
+    return classes()
+        .that()
+        .resideInAPackage(base + "..")
+        .should()
+        .onlyDependOnClassesThat()
+        .resideInAnyPackage(allowed)
+        .because("shared libraries are plain Java (masterplan §3.3.1)");
+  }
+
+  /** No hidden randomness or time in a pure library: both are injected. */
+  public static ArchRule noHiddenRandomnessOrTime(String base, String... exemptPackages) {
+    var rule = noClasses().that().resideInAPackage(base + "..");
+    for (String exempt : exemptPackages) {
+      rule = rule.and().resideOutsideOfPackage(exempt);
+    }
+    return rule.should()
+        .callConstructor(java.security.SecureRandom.class)
+        .orShould()
+        .callMethod(Instant.class, "now")
+        .orShould()
+        .callMethod(System.class, "currentTimeMillis")
+        .orShould()
+        .callMethod(java.time.InstantSource.class, "system")
+        .because("time and randomness are injected so tests are deterministic")
+        .allowEmptyShould(true);
+  }
+
   /** All rules for a service, in one call. */
   public static List<ArchRule> all(String base) {
     return List.of(

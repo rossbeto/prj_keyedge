@@ -46,3 +46,22 @@ tasks.withType<Test>().configureEach {
     testLogging { events("failed"); exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
 }
 tasks.named<JacocoReport>("jacocoTestReport") { reports { xml.required = true; html.required = true } }
+
+// Coverage gate (DoD 2): 85 % lines by default; libraries and core packages raise it with
+// `keyedgeCoverage { minimum = 0.95 }`. Wired into `check`.
+abstract class KeyedgeCoverageExtension {
+    abstract val minimum: Property<Double>
+}
+val keyedgeCoverage = extensions.create<KeyedgeCoverageExtension>("keyedgeCoverage").apply { minimum.convention(0.85) }
+val coverageGate = tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
+    dependsOn(tasks.named("test"))
+    violationRules {
+        rule {
+            limit {
+                counter = "LINE"
+                minimum = keyedgeCoverage.minimum.map { it.toBigDecimal() }.get()
+            }
+        }
+    }
+}
+tasks.named("check") { dependsOn(coverageGate) }

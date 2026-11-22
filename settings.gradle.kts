@@ -16,3 +16,6 @@ dependencyResolutionManagement {
 rootProject.name = "keyedge"
 
 include("libs:testkit")
+include("libs:keyformat")
+include("libs:problem")
+include("libs:problem-micronaut")

@@ -1,0 +1,15 @@
+urn:keyedge:problem:unauthenticated 401 Authentication required
+urn:keyedge:problem:malformed-key 401 The API key is malformed
+urn:keyedge:problem:unknown-key 401 The API key is not valid
+urn:keyedge:problem:revoked-key 401 The API key was revoked
+urn:keyedge:problem:expired-key 401 The API key has expired
+urn:keyedge:problem:missing-scope 403 The API key lacks a required scope
+urn:keyedge:problem:rate-limited 429 Too many requests for this key
+urn:keyedge:problem:overloaded 503 The service is overloaded
+urn:keyedge:problem:idempotency-conflict 409 A request with this Idempotency-Key is in flight
+urn:keyedge:problem:idempotency-mismatch 422 This Idempotency-Key was used with a different request
+urn:keyedge:problem:validation 400 The request is invalid
+urn:keyedge:problem:not-found 404 Not found
+urn:keyedge:problem:precondition-failed 412 The resource changed
+urn:keyedge:problem:upstream-unavailable 503 A dependency is unavailable
+urn:keyedge:problem:internal 500 Internal error
