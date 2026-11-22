@@ -1,0 +1,32 @@
+# Build output
+build/
+.gradle/
+.kotlin/
+out/
+!infra/out/.keep
+infra/out/
+cdk.out/
+node_modules/
+*.class
+*.jfr
+# Local env and tools
+.env
+.tools/
+.idea/
+.vscode/
+*.iml
+# Secrets: only SOPS-encrypted files are committed
+secrets/**/*.dec.*
+*.age.key
+# AWS Emulator: per-run config, emulator_credentials and ca.pem live in ~/.aws/emulator/<port>/
+# and must NEVER be copied into this repo; compatibility-check artifacts stay local too.
+.aws-emulator/
+emulator_credentials
+ca.pem
+truststore.p12
+# Python (infra/python)
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

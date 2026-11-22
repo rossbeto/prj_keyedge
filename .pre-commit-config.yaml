@@ -1,0 +1,29 @@
+# Install once: uvx pre-commit install --hook-type pre-commit --hook-type commit-msg
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        exclude: ^(gradle/wrapper/gradle-wrapper\.jar|infra/package-lock\.json)$
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-toml
+      - id: detect-private-key
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+  - repo: local
+    hooks:
+      - id: forbidden-terms
+        name: no employer or internal names (files)
+        entry: python3 scripts/forbidden_terms.py check
+        language: system
+        pass_filenames: false
+      - id: forbidden-terms-message
+        name: no employer or internal names (commit message)
+        entry: scripts/check_commit_message.sh
+        language: system
+        stages: [commit-msg]

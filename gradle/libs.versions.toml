@@ -1,0 +1,62 @@
+# Every version in the build lives here (D-03). Renovate groups bumps; CDK versions must match infra/python/uv.lock (D-47).
+[versions]
+java = "25"
+micronaut = "5.2.7"
+micronautGradle = "5.0.2"
+spotless = "8.12.0"
+googleJavaFormat = "2.0.0"
+errorpronePlugin = "5.2.0"
+errorprone = "2.53.0"
+nullaway = "0.14.4"
+jspecify = "1.0.1"
+archunit = "1.5.1"
+jqwik = "1.10.2"
+pitestPlugin = "1.19.0"
+pitest = "1.30.2"
+pitestJunit5 = "1.2.3"
+jmhPlugin = "0.7.4"
+jmh = "1.37"
+jcstress = "0.16"
+checkstyle = "14.4.0"
+jacoco = "0.8.16"
+cdk = "2.278.0"
+cdkNag = "3.1.0"
+constructs = "10.8.1"
+awssdk = "2.59.7"
+resilience4j = "2.4.0"
+caffeine = "3.3.1"
+testcontainers = "2.0.5"
+flociTestcontainers = "2.17.0"
+bucket4j = "8.23.0"
+junit = "6.1.3"
+assertj = "3.27.7"
+
+[libraries]
+jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
+errorprone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "errorprone" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
+jmh-core = { module = "org.openjdk.jmh:jmh-core", version.ref = "jmh" }
+jmh-generator = { module = "org.openjdk.jmh:jmh-generator-annprocess", version.ref = "jmh" }
+jcstress-core = { module = "org.openjdk.jcstress:jcstress-core", version.ref = "jcstress" }
+cdk-lib = { module = "software.amazon.awscdk:aws-cdk-lib", version.ref = "cdk" }
+cdk-nag = { module = "io.github.cdklabs:cdknag", version.ref = "cdkNag" }
+constructs = { module = "software.constructs:constructs", version.ref = "constructs" }
+awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
+resilience4j-bom = { module = "io.github.resilience4j:resilience4j-bom", version.ref = "resilience4j" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+floci-testcontainers = { module = "io.floci:testcontainers-floci", version.ref = "flociTestcontainers" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+bucket4j = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+# build-logic plugin artifacts
+plugin-spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+plugin-errorprone = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "errorpronePlugin" }
+plugin-pitest = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version.ref = "pitestPlugin" }
+plugin-jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version.ref = "jmhPlugin" }
+plugin-micronaut = { module = "io.micronaut.gradle:micronaut-gradle-plugin", version.ref = "micronautGradle" }
+
+[plugins]
+foojay = { id = "org.gradle.toolchains.foojay-resolver-convention", version = "1.0.0" }

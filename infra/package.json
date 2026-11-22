@@ -1,0 +1,8 @@
+{
+  "name": "keyedge-infra-cli",
+  "private": true,
+  "description": "Pins the AWS CDK CLI once for both CDK apps (infra/java, infra/python), run with npx (D-40, D-47).",
+  "devDependencies": {
+    "aws-cdk": "2.1148.0"
+  }
+}

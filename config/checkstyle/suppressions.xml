@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN" "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<!-- Deliberately wrong code: rule fixtures that must break the rules, and pitfall reproductions (masterplan §3.3.6). -->
+<suppressions>
+  <suppress files="[\\/]fixtures[\\/]bad[\\/]" checks=".*"/>
+  <suppress files="[\\/]lab[\\/]pitfalls[\\/]" checks=".*"/>
+</suppressions>

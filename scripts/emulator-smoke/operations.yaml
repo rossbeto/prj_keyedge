@@ -1,0 +1,32 @@
+# Operations + settings the keyedge design relies on (Phase 001 S3). One row = one check.
+# id: short id | op: service:Operation | setting: what the design needs from it | phase: first phase using it
+- {id: ddb-create-gsi,     op: "dynamodb:CreateTable",        setting: "BillingMode=PAY_PER_REQUEST with one GlobalSecondaryIndex", phase: "004/005"}
+- {id: ddb-ttl,            op: "dynamodb:UpdateTimeToLive",   setting: "Enabled=true on attribute ttl; expired items eventually deleted", phase: "005"}
+- {id: ddb-put-cond,       op: "dynamodb:PutItem",            setting: "ConditionExpression attribute_not_exists(PK) -> ConditionalCheckFailedException", phase: "005"}
+- {id: ddb-update-add,     op: "dynamodb:UpdateItem",         setting: "UpdateExpression ADD counter + ConditionExpression version = :v", phase: "005"}
+- {id: ddb-transact,       op: "dynamodb:TransactWriteItems", setting: "2 Puts with attribute_not_exists; one fails -> TransactionCanceledException with CancellationReasons", phase: "005"}
+- {id: ddb-get-consistent, op: "dynamodb:GetItem",            setting: "ConsistentRead=true", phase: "005"}
+- {id: ddb-query-gsi-page, op: "dynamodb:Query",              setting: "IndexName=GSI1, Limit, ExclusiveStartKey pagination", phase: "005"}
+- {id: sm-create,          op: "secretsmanager:CreateSecret", setting: "SecretString", phase: "005"}
+- {id: sm-put-version,     op: "secretsmanager:PutSecretValue", setting: "new version moves AWSCURRENT, old becomes AWSPREVIOUS", phase: "005"}
+- {id: sm-get-stage,       op: "secretsmanager:GetSecretValue", setting: "VersionStage=AWSPREVIOUS and by VersionId", phase: "005"}
+- {id: sm-list-versions,   op: "secretsmanager:ListSecretVersionIds", setting: "lists both versions with stages", phase: "005"}
+- {id: ssm-put,            op: "ssm:PutParameter",            setting: "Type=String and SecureString", phase: "012"}
+- {id: ssm-by-path,        op: "ssm:GetParametersByPath",     setting: "Recursive=true, WithDecryption=true", phase: "012"}
+- {id: kms-create-sym,     op: "kms:CreateKey",               setting: "KeySpec=SYMMETRIC_DEFAULT", phase: "012"}
+- {id: kms-create-hmac,    op: "kms:CreateKey",               setting: "KeySpec=HMAC_256, KeyUsage=GENERATE_VERIFY_MAC", phase: "005 (optional)"}
+- {id: kms-encrypt,        op: "kms:Encrypt",                 setting: "round trip with kms:Decrypt", phase: "012"}
+- {id: kms-datakey,        op: "kms:GenerateDataKey",         setting: "KeySpec=AES_256 (SOPS envelope)", phase: "012"}
+- {id: kms-mac,            op: "kms:GenerateMac",             setting: "HMAC_SHA_256 + kms:VerifyMac", phase: "005 (optional)"}
+- {id: kms-alias,          op: "kms:CreateAlias",             setting: "alias/keyedge-sops-local", phase: "012"}
+- {id: sts-identity,       op: "sts:GetCallerIdentity",       setting: "account 000000000000", phase: "001"}
+- {id: cfn-changeset,      op: "cloudformation:CreateChangeSet", setting: "used by aws cloudformation deploy (+ ExecuteChangeSet, DescribeStacks, DeleteStack)", phase: "012"}
+- {id: cfn-ddb,            op: "cloudformation:CreateStack",  setting: "resource AWS::DynamoDB::Table with TTL + GSI really created", phase: "012"}
+- {id: cfn-ssm-sm-kms,     op: "cloudformation:CreateStack",  setting: "AWS::SSM::Parameter, AWS::SecretsManager::Secret, AWS::KMS::Key, AWS::KMS::Alias really created", phase: "012"}
+- {id: cfn-ecs,            op: "cloudformation:CreateStack",  setting: "AWS::ECS::Cluster, AWS::ECS::TaskDefinition, AWS::ECS::Service, AWS::EC2::VPC, AWS::IAM::Role, AWS::Logs::LogGroup", phase: "014"}
+- {id: cfn-elbv2,          op: "cloudformation:CreateStack",  setting: "AWS::ElasticLoadBalancingV2::LoadBalancer/TargetGroup/Listener", phase: "014"}
+- {id: ecr-repo,           op: "ecr:CreateRepository",        setting: "+ GetAuthorizationToken and docker push", phase: "014"}
+- {id: ecs-register,       op: "ecs:RegisterTaskDefinition",  setting: "2 containers, dependsOn condition HEALTHY, healthCheck", phase: "014"}
+- {id: ecs-runtask,        op: "ecs:RunTask",                 setting: "containers actually run and reach each other on localhost", phase: "014"}
+- {id: ecs-service,        op: "ecs:CreateService",           setting: "desiredCount 1 reaches runningCount 1", phase: "014"}
+- {id: elbv2-route,        op: "elasticloadbalancingv2:CreateLoadBalancer", setting: "ALB forwards real HTTP traffic to ECS tasks", phase: "014"}

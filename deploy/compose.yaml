@@ -1,0 +1,46 @@
+# keyedge local stack. Ports: 127.0.0.1:15xxx only (masterplan §8). The AWS target is one of two
+# emulators, chosen by KEYEDGE_AWS_TARGET (profiles `floci` / `aws-emulator`, masterplan §7.2).
+name: keyedge
+
+services:
+  floci:
+    profiles: [floci]
+    image: floci/floci:2.5.0@sha256:a0fbf944d7f338cc0856f1ef83831ea749ff2be71956eb7a7fce08fc21458e19
+    ports: ["127.0.0.1:15566:4566"]
+    environment:
+      FLOCI_DEFAULT_REGION: us-east-1
+      FLOCI_STORAGE_MODE: memory
+      # Unsupported CloudFormation types must fail, not report CREATE_COMPLETE (D-30, D-42).
+      FLOCI_SERVICES_CLOUDFORMATION_ALLOW_STUB_UNSUPPORTED_RESOURCE_TYPES: "false"
+    mem_limit: 1g
+
+  # Floci with the Docker socket: ECS tasks run as real sibling containers. Root-equivalent access to
+  # the host's Docker daemon, so ONLY in the `ecs` profile, never by default (masterplan §12).
+  floci-ecs:
+    profiles: [ecs]
+    image: floci/floci:2.5.0@sha256:a0fbf944d7f338cc0856f1ef83831ea749ff2be71956eb7a7fce08fc21458e19
+    ports: ["127.0.0.1:15567:4566"]
+    user: root
+    environment:
+      FLOCI_DEFAULT_REGION: us-east-1
+      FLOCI_STORAGE_MODE: memory
+      FLOCI_SERVICES_CLOUDFORMATION_ALLOW_STUB_UNSUPPORTED_RESOURCE_TYPES: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    mem_limit: 1g
+
+  aws-emulator:
+    profiles: [aws-emulator]
+    image: keyedge/aws-emulator:latest
+    build: ./aws-emulator
+    command: ["-p", "15297"]
+    user: "${KEYEDGE_UID:-1000}:${KEYEDGE_GID:-1000}"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      EMULATOR_TELEMETRY: "off"
+    ports: ["127.0.0.1:15297:15297"]
+    volumes:
+      - ${HOME}/.aws/emulator/15297:/home/emulator/.aws/emulator/15297
+    mem_limit: 1g
