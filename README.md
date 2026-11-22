@@ -4,7 +4,7 @@
 > *how do you issue, store and rotate API keys safely, and how does a small sidecar next to every
 > service authenticate, rate-limit and protect it without becoming the outage itself?*
 
-**Status:** Phase 004 of 16: build, guardrails, `keyformat`, `problem`, `ratelimit`, and the AWS target switch with a contract suite passing on **both** local emulators ([parity](docs/parity.md)).
+**Status:** Phase 005 of 16: libraries, the AWS target switch with a two-emulator contract suite ([parity](docs/parity.md)), and the **keys** control plane + a local JWT issuer.
 
 ## What it will contain
 

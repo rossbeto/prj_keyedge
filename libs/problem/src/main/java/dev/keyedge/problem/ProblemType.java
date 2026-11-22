@@ -23,6 +23,7 @@ public enum ProblemType {
   VALIDATION("validation", "The request is invalid", 400),
   NOT_FOUND("not-found", "Not found", 404),
   PRECONDITION_FAILED("precondition-failed", "The resource changed", 412),
+  CONFLICT("conflict", "The resource was changed concurrently; retry", 409),
   UPSTREAM_UNAVAILABLE("upstream-unavailable", "A dependency is unavailable", 503),
   INTERNAL("internal", "Internal error", 500);
 

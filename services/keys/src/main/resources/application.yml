@@ -1,0 +1,25 @@
+micronaut:
+  application:
+    name: keys
+  server:
+    port: 15100
+    host: 127.0.0.1
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        claims-validators:
+          issuer: keyedge-issuer
+    intercept-url-map:
+      - pattern: /health/**
+        access: [isAnonymous()]
+      - pattern: /prometheus
+        access: [isAnonymous()]
+endpoints:
+  health:
+    enabled: true
+    sensitive: false
+keyedge:
+  keys:
+    table: ${KEYEDGE_KEYS_TABLE:keyedge-keys}
+    environment: ${KEYEDGE_KEYS_ENVIRONMENT:test}

@@ -21,4 +21,4 @@ dependencies {
     testRuntimeOnly("org.yaml:snakeyaml")
 }
 
-tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:-rawtypes", "-Xlint:-unchecked")) }
+tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:-rawtypes", "-Xlint:-unchecked", "-Xlint:-cast", "-Xlint:-classfile")) }

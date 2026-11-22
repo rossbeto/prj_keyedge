@@ -99,3 +99,15 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost
 	    cp results/jmh/$(RUN_ID)/limiter-cost.json results/labs/limiter-cost.json ;; \
 	  *) echo "unknown experiment '$(E)' (naive-bucket-race | limiter-cost)"; exit 2 ;; \
 	esac
+
+## ---- Services ---------------------------------------------------------------------------
+.PHONY: seed run contracts-check
+contracts-check: ## OpenAPI documents generated at compile time must match contracts/openapi/*.yml
+	$(GRADLE) :services:keys:test --tests '*OpenApiSnapshotTest*'
+
+seed: ## Create table + secrets on the TARGET emulator (until CDK does it, Phase 012)
+	scripts/emu.sh assert-local $(TARGET)
+	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/seed.py )
+
+run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
+	( . <(scripts/aws-env.sh $(TARGET)) && KEYEDGE_AWS_TARGET=$(TARGET) MICRONAUT_ENVIRONMENTS=local $(GRADLE) --no-configuration-cache :services:$(S):run )

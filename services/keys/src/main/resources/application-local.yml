@@ -1,0 +1,9 @@
+# Environment `local` (compose, make run): partner JWTs come from the local issuer (services/issuer).
+micronaut:
+  security:
+    token:
+      jwt:
+        signatures:
+          jwks:
+            issuer:
+              url: ${KEYEDGE_ISSUER_JWKS:`http://127.0.0.1:15110/.well-known/jwks.json`}

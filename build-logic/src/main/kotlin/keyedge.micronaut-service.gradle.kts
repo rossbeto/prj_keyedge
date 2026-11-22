@@ -24,7 +24,7 @@ dependencies {
 }
 
 // Micronaut's generated serde/bean classes use raw types; javac cannot exclude generated files from -Xlint.
-tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:-rawtypes", "-Xlint:-unchecked")) }
+tasks.withType<JavaCompile>().configureEach { options.compilerArgs.addAll(listOf("-Xlint:-rawtypes", "-Xlint:-unchecked", "-Xlint:-cast", "-Xlint:-classfile")) }
 
 // Native builds use a GraalVM 25 toolchain provisioned by foojay (D-50); nothing installed on the host.
 graalvmNative {

@@ -1,0 +1,332 @@
+openapi: 3.0.1
+info:
+  title: keyedge keys
+  description: "Issue, rotate, revoke and verify API keys"
+  version: "1"
+paths:
+  /internal/v1/usage:
+    post:
+      operationId: usage
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: usage 200 response
+  /internal/v1/verify:
+    post:
+      operationId: verify
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+        required: true
+      responses:
+        "200":
+          description: verify 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.Verdict"
+  /v1/keys:
+    get:
+      operationId: list
+      parameters:
+      - name: cursor
+        in: query
+        explode: false
+        schema:
+          type: string
+          nullable: true
+      - name: limit
+        in: query
+        explode: false
+        schema:
+          type: integer
+          format: int32
+          nullable: true
+      responses:
+        "200":
+          description: list 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.KeyPage"
+    post:
+      operationId: create
+      parameters:
+      - name: Idempotency-Key
+        in: header
+        schema:
+          type: string
+          nullable: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Dtos.CreateKey"
+        required: true
+      responses:
+        "200":
+          description: create 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.KeyWithSecret"
+  /v1/keys/{keyId}:
+    get:
+      operationId: get
+      parameters:
+      - name: keyId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: If-None-Match
+        in: header
+        schema:
+          type: string
+          nullable: true
+      responses:
+        "200":
+          description: get 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.KeyView"
+  /v1/keys/{keyId}/revoke:
+    post:
+      operationId: revoke
+      parameters:
+      - name: keyId
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: revoke 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.KeyView"
+  /v1/keys/{keyId}/rotate:
+    post:
+      operationId: rotate
+      parameters:
+      - name: keyId
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Dtos.Rotate"
+      responses:
+        "200":
+          description: rotate 200 response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dtos.KeyWithSecret"
+  /v1/usage:
+    get:
+      operationId: usage_1
+      parameters:
+      - name: keyId
+        in: query
+        required: true
+        explode: false
+        schema:
+          type: string
+      - name: from
+        in: query
+        required: true
+        explode: false
+        schema:
+          type: string
+          format: date-time
+      - name: to
+        in: query
+        required: true
+        explode: false
+        schema:
+          type: string
+          format: date-time
+      responses:
+        "200":
+          description: usage_1 200 response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Dtos.Usage"
+components:
+  schemas:
+    Dtos.CreateKey:
+      required:
+      - name
+      type: object
+      properties:
+        name:
+          maxLength: 80
+          minLength: 1
+          type: string
+        scopes:
+          maxItems: 20
+          type: array
+          nullable: true
+          items:
+            type: string
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+    Dtos.KeyPage:
+      required:
+      - items
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Dtos.KeyView"
+        next:
+          type: string
+          nullable: true
+    Dtos.KeyView:
+      required:
+      - createdAt
+      - hint
+      - keyId
+      - name
+      - rateLimit
+      - scopes
+      - status
+      - version
+      type: object
+      properties:
+        keyId:
+          type: string
+        name:
+          type: string
+        hint:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        previousSecretRetiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        rateLimit:
+          $ref: "#/components/schemas/Dtos.RateLimit"
+        version:
+          type: integer
+          format: int64
+    Dtos.KeyWithSecret:
+      required:
+      - keyId
+      - keyShownOnce
+      type: object
+      properties:
+        key:
+          type: string
+          nullable: true
+        keyShownOnce:
+          type: boolean
+        metadata:
+          nullable: true
+          allOf:
+          - $ref: "#/components/schemas/Dtos.KeyView"
+        keyId:
+          type: string
+    Dtos.RateLimit:
+      required:
+      - burst
+      - perSecond
+      type: object
+      properties:
+        perSecond:
+          type: integer
+          format: int64
+        burst:
+          type: integer
+          format: int64
+    Dtos.Rotate:
+      type: object
+      properties:
+        graceSeconds:
+          type: integer
+          format: int64
+          nullable: true
+    Dtos.Usage:
+      required:
+      - allowed
+      - keyId
+      - minute
+      - rejected
+      type: object
+      properties:
+        keyId:
+          type: string
+        minute:
+          type: string
+          format: date-time
+        allowed:
+          type: integer
+          format: int64
+        rejected:
+          type: integer
+          format: int64
+    Dtos.Verdict:
+      required:
+      - keyId
+      - scopes
+      - ttlSeconds
+      - verdict
+      type: object
+      properties:
+        verdict:
+          type: string
+        tenant:
+          type: string
+          nullable: true
+        keyId:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        rateLimit:
+          nullable: true
+          allOf:
+          - $ref: "#/components/schemas/Dtos.RateLimit"
+        ttlSeconds:
+          type: integer
+          format: int64
+        at:
+          type: string
+          format: date-time
+          nullable: true

@@ -181,7 +181,8 @@ public final class KeyedgeArchitectureRules {
                     call.getName().equals("builder")
                         && call.getTargetOwner()
                             .getPackageName()
-                            .startsWith("software.amazon.awssdk.services")))
+                            .startsWith("software.amazon.awssdk.services")
+                        && call.getTargetOwner().getSimpleName().endsWith("Client")))
         .because("every AWS client goes through AwsTargetConfigurer (masterplan §7.2)")
         .allowEmptyShould(true);
   }

@@ -1,0 +1,1 @@
+{"experiment":"pepper-rotation","hypothesis":"keys hashed with an old pepper keep verifying after rotation; new keys use the new pepper; retiring the old pepper invalidates old keys","old_key_pepper":1,"new_key_pepper":2,"after_rotation":["Valid","Valid"],"old_key_after_retire":"Unknown","verdict":"confirmed","target":"aws-emulator","recorded_at":"2026-11-22T22:27:26.367203177Z"}

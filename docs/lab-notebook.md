@@ -66,3 +66,26 @@ behaviours (ECS, ALB, a CloudFormation detail), tracked as P-02…P-10.
 
 **Interview line.** "I didn't trust the feature lists: the same contract tests run on two emulators every PR,
 and the parity page is generated from those runs — including the rows where an emulator is wrong."
+
+## idempotency-race (Phase 005)
+
+**Hypothesis.** Two identical `POST /v1/keys` with the same `Idempotency-Key`, sent at the same moment, create
+exactly one key; the other request gets a replay or an in-flight conflict, never a second key.
+
+**Method.** 50 pairs of concurrent calls to the `IssueKey` use case on virtual threads, with the real DynamoDB
+adapter, on each emulator. Independent count: the tenant's keys read back through the list index.
+
+**Result** (`results/labs/idempotency-race-{floci,aws-emulator}.json`): verdict **confirmed** on both — 50 keys
+stored for 50 pairs; outcomes 50 `Issued` + 50 `InFlight`. The guarantee comes from one `TransactWriteItems`
+(key put + idempotency record `IN_FLIGHT → DONE`), whose cancellation reasons say *which* condition failed.
+
+**Interview line.** "The key and 'request done' are written in one transaction, so a key can't exist without its
+idempotency record saying so; the cancellation reason index tells an id collision from a lost claim."
+
+## pepper-rotation (Phase 005)
+
+**Hypothesis.** Keys hashed with an old pepper keep verifying after a new pepper becomes current; new keys use
+the new pepper; removing the old pepper invalidates exactly the keys that used it.
+
+**Result** (`results/labs/pepper-rotation-{floci,aws-emulator}.json`): **confirmed** on both — old key pepper 1,
+new key pepper 2, both `Valid` after rotation, the old key `Unknown` once pepper 1 is retired.

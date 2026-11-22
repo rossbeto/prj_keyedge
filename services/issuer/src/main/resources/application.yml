@@ -1,0 +1,10 @@
+micronaut:
+  application:
+    name: issuer
+  server:
+    port: 15110
+    host: ${KEYEDGE_BIND:127.0.0.1}
+endpoints:
+  health:
+    enabled: true
+    sensitive: false

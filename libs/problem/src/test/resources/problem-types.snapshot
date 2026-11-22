@@ -11,5 +11,6 @@ urn:keyedge:problem:idempotency-mismatch 422 This Idempotency-Key was used with 
 urn:keyedge:problem:validation 400 The request is invalid
 urn:keyedge:problem:not-found 404 Not found
 urn:keyedge:problem:precondition-failed 412 The resource changed
+urn:keyedge:problem:conflict 409 The resource was changed concurrently; retry
 urn:keyedge:problem:upstream-unavailable 503 A dependency is unavailable
 urn:keyedge:problem:internal 500 Internal error

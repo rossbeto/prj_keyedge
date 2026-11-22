@@ -1,0 +1,74 @@
+package dev.keyedge.keyformat;
+
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Base64;
+import java.util.HexFormat;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+/**
+ * HMAC signature for sidecar → control-plane calls (D-25). Signs method, path, timestamp and the
+ * SHA-256 of the body, so neither the body nor the target can be changed and an old request cannot
+ * be replayed outside the skew window (the receiver also remembers recent signatures).
+ *
+ * <pre>
+ *   string-to-sign = METHOD "\n" path "\n" epochSeconds "\n" hex(sha256(body))
+ *   signature      = base64url(HMAC-SHA256(credential, string-to-sign))
+ * </pre>
+ */
+public final class InternalSignature {
+  /** Header with the caller's credential id. */
+  public static final String CALLER = "X-Keyedge-Caller";
+
+  /** Header with the signing time in epoch seconds. */
+  public static final String TIMESTAMP = "X-Keyedge-Timestamp";
+
+  /** Header with the signature. */
+  public static final String SIGNATURE = "X-Keyedge-Signature";
+
+  private InternalSignature() {}
+
+  /** The signature for a request. */
+  public static String sign(
+      byte[] credential, String method, String path, Instant at, byte[] body) {
+    try {
+      String toSign =
+          method
+              + "\n"
+              + path
+              + "\n"
+              + at.getEpochSecond()
+              + "\n"
+              + HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(body));
+      Mac mac = Mac.getInstance("HmacSHA256");
+      mac.init(new SecretKeySpec(credential, "HmacSHA256"));
+      return Base64.getUrlEncoder()
+          .withoutPadding()
+          .encodeToString(mac.doFinal(toSign.getBytes(StandardCharsets.UTF_8)));
+    } catch (GeneralSecurityException e) {
+      throw new IllegalStateException("HmacSHA256/SHA-256 are required by every JDK", e);
+    }
+  }
+
+  /** Constant-time check of signature and skew; replay protection is the receiver's job. */
+  public static boolean verify(
+      byte[] credential,
+      String method,
+      String path,
+      Instant signedAt,
+      byte[] body,
+      String signature,
+      Instant now,
+      Duration maxSkew) {
+    if (Duration.between(signedAt, now).abs().compareTo(maxSkew) > 0) {
+      return false;
+    }
+    byte[] expected =
+        sign(credential, method, path, signedAt, body).getBytes(StandardCharsets.US_ASCII);
+    return MessageDigest.isEqual(expected, signature.getBytes(StandardCharsets.US_ASCII));
+  }
+}
