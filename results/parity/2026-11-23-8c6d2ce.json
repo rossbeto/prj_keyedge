@@ -1,0 +1,173 @@
+{
+  "schema": 1,
+  "run": "2026-11-23-8c6d2ce",
+  "versions": {
+    "floci": "2.5.0 (floci/floci@sha256:a0fbf944\u2026)",
+    "aws-emulator": "1.0.569 (2026.11.22)"
+  },
+  "contract": {
+    "stsReportsTheEmulatorAccount": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "transactionCancellationReportsWhichConditionFailed": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "optimisticLockAndAtomicCounter": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "gsiQueryPaginatesWithExclusiveStartKey": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "ttlIsEnabledAndExpiredItemsEventuallyGo": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "secretVersionsAndStages": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "parametersByPathWithSecureStringsAndVersions": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "kmsEncryptionContextMustMatch": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "kmsHmacKeysGenerateAndVerifyMacs": {
+      "floci": {
+        "status": "pass"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    },
+    "connectHostOverrideKeepsTlsVerificationOnTheEndpointName": {
+      "floci": {
+        "status": "not run"
+      },
+      "aws-emulator": {
+        "status": "pass"
+      }
+    }
+  },
+  "data": {
+    "floci": {
+      "ttl_deleted_after_s": "56"
+    },
+    "aws-emulator": {
+      "ttl_deleted_after_s": "4"
+    }
+  },
+  "known": [
+    {
+      "id": "P-02",
+      "behaviour": "CloudFormation `TargetGroupAttributes` (deregistration delay) applied",
+      "floci": "ignored (300 s default kept)",
+      "aws-emulator": "applied",
+      "aws": "applied",
+      "source": "Phase 001 smoke"
+    },
+    {
+      "id": "P-03",
+      "behaviour": "CloudFormation task definition with container-level `DependsOn` + `Condition`",
+      "floci": "deploys",
+      "aws-emulator": "**rejected**: \"Condition START is not defined\"",
+      "aws": "deploys",
+      "source": "Phase 001 smoke; reported upstream (U-06)"
+    },
+    {
+      "id": "P-04",
+      "behaviour": "ECS: containers of one task share `localhost`",
+      "floci": "**no** (each on the compose network)",
+      "aws-emulator": "not run here (no Docker access; Phase 014 retests)",
+      "aws": "yes (awsvpc)",
+      "source": "Phase 001 probe"
+    },
+    {
+      "id": "P-05",
+      "behaviour": "ECS: container health checks run; `dependsOn: HEALTHY` waits",
+      "floci": "**no** (health UNKNOWN, dependent never starts)",
+      "aws-emulator": "compatibility check: FAILING trace",
+      "aws": "yes",
+      "source": "Phase 001 probe + check"
+    },
+    {
+      "id": "P-06",
+      "behaviour": "ECS runs task containers",
+      "floci": "yes (Docker siblings, `ecs` profile)",
+      "aws-emulator": "not without the Docker socket (Phase 014 retests with it)",
+      "aws": "yes",
+      "source": "Phase 001 smoke"
+    },
+    {
+      "id": "P-07",
+      "behaviour": "ALB forwards real HTTP to targets",
+      "floci": "unverified (LB DNS \u2192 127.0.0.1:80)",
+      "aws-emulator": "unverified here; a corpus trace passes",
+      "aws": "yes",
+      "source": "Phase 001; Phase 014 tests"
+    },
+    {
+      "id": "P-08",
+      "behaviour": "GSI reads are eventually consistent",
+      "floci": "immediately consistent (base-table reads, Floci docs)",
+      "aws-emulator": "not measured",
+      "aws": "eventually consistent",
+      "source": "Floci docs"
+    },
+    {
+      "id": "P-09",
+      "behaviour": "KMS ciphertext usable outside the emulator",
+      "floci": "no (internal envelope, Floci docs)",
+      "aws-emulator": "not measured",
+      "aws": "n/a",
+      "source": "Floci docs"
+    },
+    {
+      "id": "P-10",
+      "behaviour": "IAM policies, KMS key policies, resource policies enforced",
+      "floci": "no (optional IAM enforcement off)",
+      "aws-emulator": "no (never denies its own keys)",
+      "aws": "yes",
+      "source": "both emulators' docs; never claimed as tested"
+    }
+  ],
+  "recorded_at": "2026-11-22T22:07:54+00:00"
+}

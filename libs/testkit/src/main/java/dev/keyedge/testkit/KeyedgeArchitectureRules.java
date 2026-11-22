@@ -161,6 +161,31 @@ public final class KeyedgeArchitectureRules {
         .allowEmptyShould(true);
   }
 
+  /**
+   * AWS SDK clients are built only in composition roots (and the awstarget/testkit libraries),
+   * where {@code AwsTargetConfigurer} applies the target switch: no client can bypass
+   * KEYEDGE_AWS_TARGET (D-32).
+   */
+  public static ArchRule awsClientsOnlyInWiring(String base) {
+    return noClasses()
+        .that()
+        .resideInAPackage(base + "..")
+        .and()
+        .resideOutsideOfPackages(
+            base + ".wiring..", "dev.keyedge.awstarget..", "dev.keyedge.testkit.aws..")
+        .should()
+        .callMethodWhere(
+            com.tngtech.archunit.base.DescribedPredicate.describe(
+                "an AWS SDK client builder()",
+                call ->
+                    call.getName().equals("builder")
+                        && call.getTargetOwner()
+                            .getPackageName()
+                            .startsWith("software.amazon.awssdk.services")))
+        .because("every AWS client goes through AwsTargetConfigurer (masterplan §7.2)")
+        .allowEmptyShould(true);
+  }
+
   /** All rules for a service, in one call. */
   public static List<ArchRule> all(String base) {
     return List.of(
@@ -168,7 +193,8 @@ public final class KeyedgeArchitectureRules {
         coreIsFrameworkFree(base),
         noClockReadsOutsideWiring(base),
         noUtilsOrHelpers(base),
-        adaptersIndependent(base));
+        adaptersIndependent(base),
+        awsClientsOnlyInWiring(base));
   }
 
   /** Checks every rule and reports all violations together. */

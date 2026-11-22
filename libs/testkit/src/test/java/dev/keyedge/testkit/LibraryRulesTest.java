@@ -40,12 +40,23 @@ class LibraryRulesTest {
     assertThatCode(() -> KeyedgeArchitectureRules.checkAll("dev.keyedge.nothing.here"))
         .doesNotThrowAnyException();
     assertThat(KeyedgeArchitectureRules.importMain("dev.keyedge.testkit.fixtures")).isEmpty();
-    assertThat(KeyedgeArchitectureRules.all("x")).hasSize(5);
+    assertThat(KeyedgeArchitectureRules.all("x")).hasSize(6);
   }
 
   @Test
   void pitfallPackagesAreRecognised() {
     var classes = new ClassFileImporter().importClasses(String.class);
     assertThat(KeyedgeArchitectureRules.isPitfall(classes.get(String.class))).isFalse();
+  }
+
+  @Test
+  void awsClientsMayBeBuiltOnlyInWiring() {
+    var classes = new ClassFileImporter().importPackages("dev.keyedge.testkit.fixtures.awsclients");
+    assertThatThrownBy(() ->
+            KeyedgeArchitectureRules.awsClientsOnlyInWiring(
+                    "dev.keyedge.testkit.fixtures.awsclients")
+                .check(classes))
+        .isInstanceOf(AssertionError.class)
+        .hasMessageContaining("adapters.BuildsClient");
   }
 }

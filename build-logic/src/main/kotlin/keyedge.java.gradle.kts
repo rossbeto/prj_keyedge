@@ -38,6 +38,7 @@ levels.forEach { level ->
         testClassesDirs = sourceSets["test"].output.classesDirs
         classpath = sourceSets["test"].runtimeClasspath
         useJUnitPlatform { includeTags(level) }
+        filter.isFailOnNoMatchingTests = false // `make test-aws TARGET=…` filters by class across all modules
         shouldRunAfter(tasks.named("test"))
     }
 }
@@ -51,10 +52,18 @@ tasks.named<JacocoReport>("jacocoTestReport") { reports { xml.required = true; h
 // `keyedgeCoverage { minimum = 0.95 }`. Wired into `check`.
 abstract class KeyedgeCoverageExtension {
     abstract val minimum: Property<Double>
+    /** Ant-style class patterns left out of the gate (demos, pitfalls, code exercised by other modules). */
+    abstract val excludes: ListProperty<String>
 }
-val keyedgeCoverage = extensions.create<KeyedgeCoverageExtension>("keyedgeCoverage").apply { minimum.convention(0.85) }
+val keyedgeCoverage = extensions.create<KeyedgeCoverageExtension>("keyedgeCoverage").apply {
+    minimum.convention(0.85)
+    excludes.convention(emptyList())
+}
 val coverageGate = tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
     dependsOn(tasks.named("test"))
+    classDirectories.setFrom(
+        sourceSets["main"].output.classesDirs.asFileTree.matching { exclude(keyedgeCoverage.excludes.get()) },
+    )
     violationRules {
         rule {
             limit {

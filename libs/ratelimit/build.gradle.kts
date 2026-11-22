@@ -5,15 +5,15 @@ plugins {
     id("keyedge.jmh")
     id("keyedge.jcstress")
 }
-keyedgeCoverage { minimum = 0.95 }
+keyedgeCoverage {
+    minimum = 0.95
+    excludes = listOf("**/lab/pitfalls/**")
+}
 dependencies {
     api(project(":libs:keyformat"))
     implementation(libs.caffeine)
     testImplementation(project(":libs:testkit"))
     testImplementation(libs.jqwik)
     jmh(libs.bucket4j)
-}
-tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
-    classDirectories.setFrom(files(classDirectories.files.map { fileTree(it) { exclude("**/lab/pitfalls/**") } }))
 }
 pitest { mutationThreshold = 80 } // Phase 003 baseline 84.7 % (survivors: removed onSpinWait/unlock calls = equivalent mutants)

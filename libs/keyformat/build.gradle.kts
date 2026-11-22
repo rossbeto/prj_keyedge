@@ -5,13 +5,13 @@ plugins {
     application
 }
 application { mainClass = "dev.keyedge.keyformat.demo.KeyformatDemo" }
-keyedgeCoverage { minimum = 0.95 }
+keyedgeCoverage {
+    minimum = 0.95
+    excludes = listOf("**/demo/**")
+}
 dependencies {
     testImplementation(project(":libs:testkit"))
     testImplementation(project(":libs:problem"))
     testImplementation(libs.jqwik)
-}
-tasks.named<JacocoCoverageVerification>("jacocoTestCoverageVerification") {
-    classDirectories.setFrom(files(classDirectories.files.map { fileTree(it) { exclude("**/demo/**") } }))
 }
 pitest { mutationThreshold = 85 } // Phase 002 baseline 89.6 %, rounded down to 5

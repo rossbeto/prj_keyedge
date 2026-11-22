@@ -48,3 +48,21 @@ baseline found the real split.
 
 **Interview line.** "One limiter decision is ~25 ns; under heavy contention on one key ~140 ns. With 100 000
 keys the map costs more than the limiter — and I only learnt that by adding a baseline benchmark."
+
+## emulator-parity (Phase 004)
+
+**Hypothesis.** Both emulators pass the AWS contract suite (the DynamoDB, Secrets Manager, SSM, KMS and STS
+behaviours keyedge relies on) except a short list of documented differences: TTL timing, KMS ciphertext format,
+error shapes.
+
+**Method.** One abstract JUnit suite, two subclasses (Testcontainers: Floci 2.5.0 pinned by digest; AWS Emulator
+built from its latest package, port 15298, telemetry off). Each case creates its own resources. `make emu-parity`.
+
+**Result** ([docs/parity.md](parity.md), raw `results/parity/<run>.json`): verdict **confirmed, with fewer
+differences than predicted**. All 9 shared contract cases pass on both, including transaction cancellation
+reasons per item and KMS encryption-context enforcement (predicted as a likely difference, it was not). The
+measured difference is TTL timing (Floci ~1 min sweep, AWS Emulator seconds). The real gaps are runtime
+behaviours (ECS, ALB, a CloudFormation detail), tracked as P-02…P-10.
+
+**Interview line.** "I didn't trust the feature lists: the same contract tests run on two emulators every PR,
+and the parity page is generated from those runs — including the rows where an emulator is wrong."

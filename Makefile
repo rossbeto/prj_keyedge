@@ -53,7 +53,7 @@ tools: ## Download pinned sops/age into .tools/
 	scripts/tools.sh
 
 ## ---- Emulators (KEYEDGE_AWS_TARGET / TARGET=floci|aws-emulator) ----------------------
-.PHONY: emu-up emu-down emu-health emu-env emu-image emu-smoke
+.PHONY: emu-up emu-down emu-health emu-env emu-image emu-smoke emu-reset test-aws emu-parity emu-image-if-missing
 emu-up: ## Start the emulator for TARGET and run the real-AWS guard
 	scripts/emu.sh up $(TARGET)
 
@@ -68,6 +68,19 @@ emu-env: ## Print how to load the TARGET environment into a subshell
 
 emu-image: ## Rebuild the AWS Emulator image from the LATEST package (never pinned)
 	docker build --pull --no-cache -t keyedge/aws-emulator deploy/aws-emulator
+
+emu-reset: ## Clean state: restart the TARGET emulator (AWS Emulator has no reset API; restart = empty)
+	scripts/emu.sh down $(TARGET) && scripts/emu.sh up $(TARGET)
+
+test-aws: ## AWS contract suite on TARGET (both emulators when TARGET=all); Testcontainers, needs `make emu-image` once
+	$(GRADLE) testAws $(if $(filter all,$(TARGET)),,--tests '*$(if $(filter aws-emulator,$(TARGET)),AwsEmulator,Floci)ContractTest*')
+
+emu-parity: emu-image-if-missing ## Contract suite on both emulators, then results/parity/<run>.json and docs/parity.md
+	$(GRADLE) :libs:awstarget:testAws --rerun-tasks
+	python3 scripts/parity_report.py
+
+emu-image-if-missing:
+	@docker image inspect keyedge/aws-emulator >/dev/null 2>&1 || docker build --pull -t keyedge/aws-emulator deploy/aws-emulator
 
 emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 --with pyyaml scripts/emulator-smoke/smoke.py $(TARGET) )

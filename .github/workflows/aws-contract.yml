@@ -1,0 +1,42 @@
+# AWS contract suite on both local emulators (D-61, D-80). No AWS credentials exist in this workflow:
+# every client is pointed at an emulator, and AwsTargets refuses real AWS without an explicit opt-in.
+name: aws-contract
+on:
+  pull_request:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: aws-contract-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [floci, aws-emulator]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Build AWS Emulator image from the latest package (never pinned)
+        if: matrix.target == 'aws-emulator'
+        run: docker build --pull --no-cache -t keyedge/aws-emulator deploy/aws-emulator
+      - name: Contract suite (Testcontainers; AWS Emulator telemetry off)
+        env:
+          TARGET: ${{ matrix.target }}
+        run: make test-aws TARGET="$TARGET"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: contract-${{ matrix.target }}
+          path: libs/awstarget/build/test-results/testAws/

@@ -47,7 +47,8 @@ awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
 resilience4j-bom = { module = "io.github.resilience4j:resilience4j-bom", version.ref = "resilience4j" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
-floci-testcontainers = { module = "io.floci:testcontainers-floci", version.ref = "flociTestcontainers" }
+floci-testcontainers = { module = "io.floci:testcontainers-floci-aws", version.ref = "flociTestcontainers" }
+testcontainers = { module = "org.testcontainers:testcontainers" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 bucket4j = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
