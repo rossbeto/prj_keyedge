@@ -113,7 +113,7 @@ run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
 	( . <(scripts/aws-env.sh $(TARGET)) && KEYEDGE_AWS_TARGET=$(TARGET) MICRONAUT_ENVIRONMENTS=local $(GRADLE) --no-configuration-cache :services:$(S):run )
 
 ## ---- Images and the compose stack ---------------------------------------------------------
-SERVICES := issuer keys upstream-sim
+SERVICES := issuer keys upstream-sim edge quotes
 COMPOSE := docker compose -f deploy/compose.yaml
 ifeq ($(TARGET),aws-emulator)
 CONTAINER_ENV := KEYEDGE_AWS_TARGET=aws-emulator KEYEDGE_CONTAINER_AWS_ENDPOINT=https://localhost:15297 KEYEDGE_CONTAINER_CONNECT_HOST=aws-emulator KEYEDGE_UID=$(shell id -u) KEYEDGE_GID=$(shell id -g)
@@ -126,15 +126,15 @@ images: ## Build the JVM images (Gradle distribution on the host, then deploy/Do
 	$(foreach s,$(SERVICES),docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE=$(s) -t keyedge/$(s):dev . &&) true
 
 image-size: ## Fail if a JVM image exceeds its budget (MB)
-	@scripts/image_size.sh keyedge/issuer:dev 110 keyedge/keys:dev 125 keyedge/upstream-sim:dev 110
+	@scripts/image_size.sh keyedge/issuer:dev 110 keyedge/keys:dev 125 keyedge/upstream-sim:dev 110 keyedge/edge:dev 125 keyedge/quotes:dev 125
 
 up: ## Emulator + seed + services (TARGET=floci|aws-emulator); ports 127.0.0.1:15xxx
 	scripts/emu.sh up $(TARGET)
 	$(MAKE) --no-print-directory seed TARGET=$(TARGET)
-	$(CONTAINER_ENV) $(COMPOSE) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy
+	$(CONTAINER_ENV) $(COMPOSE) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy edge quotes
 
 stop: ## Stop the services (emulators keep running: make emu-down)
-	$(COMPOSE) stop issuer keys upstream-sim toxiproxy
+	$(COMPOSE) stop quotes edge issuer keys upstream-sim toxiproxy
 
 logs: ## Follow logs: make logs S=keys
 	$(COMPOSE) logs -f $(S)

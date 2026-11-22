@@ -1,0 +1,22 @@
+micronaut:
+  application:
+    name: edge
+  server:
+    port: 15080
+    host: ${KEYEDGE_BIND:127.0.0.1}
+    max-request-size: 1MB
+  lifecycle:
+    graceful-shutdown:
+      enabled: true
+      grace-period: 28s
+endpoints:
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS
+    disk-space:
+      path: /tmp
+keyedge:
+  edge:
+    app-url: ${KEYEDGE_APP_URL:`http://127.0.0.1:15081`}
+    keys-url: ${KEYEDGE_KEYS_URL:`http://127.0.0.1:15100`}

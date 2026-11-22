@@ -89,3 +89,30 @@ the new pepper; removing the old pepper invalidates exactly the keys that used i
 
 **Result** (`results/labs/pepper-rotation-{floci,aws-emulator}.json`): **confirmed** on both — old key pepper 1,
 new key pepper 2, both `Valid` after rotation, the old key `Unknown` once pepper 1 is retired.
+
+## single-flight (Phase 007)
+
+**Hypothesis.** 500 concurrent requests with one cold key cause exactly **1** verify call to keys.
+**Method.** The sidecar's real verdict cache and HTTP verify client against a fake keys server that answers after
+100 ms and counts requests (the independent counter); 500 virtual threads released by one latch.
+**Result** ([results/labs/single-flight.json](../results/labs/single-flight.json)): **confirmed**, 1 call.
+
+## refresh-ahead (Phase 007)
+
+**Hypothesis.** With refresh at 70 % of the TTL, p99 does not spike when a hot key's entry expires; with
+expire-only, every request arriving during the reload waits for it.
+**Method.** 200 req/s for 8 s on one key, TTL hint 2 s, verify latency 300 ms; refresh ratio 0.7 vs 1.0.
+**Result** ([results/labs/refresh-ahead.json](../results/labs/refresh-ahead.json)): **confirmed on the second
+implementation** — p99 0.32 ms with refresh-ahead vs 285 ms expire-only. The **first** run was **refuted**
+(p99 233 vs 284 ms): requests that had read the old entry kept re-triggering Caffeine's `refresh()` after each
+reload, refreshes cascaded and one turned into a blocking load. Fixed with an explicit refresh: one in-flight
+refresh per key (a flag), the reloaded value swapped in as a completed future.
+**Interview line.** "The experiment refuted my first refresh-ahead: in-flight readers re-armed the refresh. The
+measured fix — one refresh per key, swap in a completed future — took p99 from 285 ms to 0.3 ms."
+
+## vt-handoff (Phase 007)
+
+**Hypothesis.** Moving the sidecar's decision from the calling thread to a virtual thread and back costs
+< 0.1 ms median.
+**Result** ([results/labs/vt-handoff.json](../results/labs/vt-handoff.json)): **confirmed**, median +0.088 ms,
+p99 +0.157 ms over 20 000 calls (close to the threshold on this shared host; one earlier run measured above it).

@@ -4,7 +4,7 @@
 > *how do you issue, store and rotate API keys safely, and how does a small sidecar next to every
 > service authenticate, rate-limit and protect it without becoming the outage itself?*
 
-**Status:** Phase 006 of 16: libraries, the two-emulator AWS switch ([parity](docs/parity.md)), the **keys** control plane, a local JWT issuer, a seeded **upstream simulator**, and a compose stack (`make up && make demo`) that runs on either emulator.
+**Status:** Phase 007 of 16: libraries, the two-emulator AWS switch ([parity](docs/parity.md)), the keys control plane, a local issuer, the upstream simulator and the **edge sidecar** in front of a demo app — `make up && make demo` runs the whole path on either emulator.
 
 ## What it will contain
 

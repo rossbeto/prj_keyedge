@@ -2,7 +2,7 @@
 
     make seed [TARGET=floci|aws-emulator]
 Creates (idempotently) the keys table, the pepper secret {"current":1,"peppers":{"1":...}} and the
-internal-caller secret {"edge-quotes": ...}. Random values come from the OS; nothing is printed except
+internal-caller secret {"edge-quotes": ...} and the sidecar→app principal key {"key": ...}. Random values come from the OS; nothing is printed except
 names. Refuses to run without an emulator endpoint (real-AWS guard).
 """
 
@@ -21,6 +21,7 @@ assert os.environ.get("AWS_ENDPOINT_URL"), "refusing to seed without AWS_ENDPOIN
 TABLE = os.environ.get("KEYEDGE_KEYS_TABLE", "keyedge-keys")
 PEPPERS = os.environ.get("KEYEDGE_PEPPER_SECRET", "keyedge/peppers")
 CALLERS = os.environ.get("KEYEDGE_CALLER_SECRET", "keyedge/callers")
+PRINCIPAL = os.environ.get("KEYEDGE_PRINCIPAL_ID", "keyedge/principal")
 ddb = boto3.client("dynamodb")
 sm = boto3.client("secretsmanager")
 
@@ -62,4 +63,5 @@ def b64() -> str:
 print(f"table {TABLE}: {table()}")
 print(f"secret {PEPPERS}: {secret(PEPPERS, {'current': 1, 'peppers': {'1': b64()}})}")
 print(f"secret {CALLERS}: {secret(CALLERS, {'edge-quotes': b64()})}")
+print(f"secret {PRINCIPAL}: {secret(PRINCIPAL, {'key': b64()})}")
 sys.exit(0)

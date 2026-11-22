@@ -73,10 +73,20 @@ def main() -> int:
     print(f"5. wrong secret, through Toxiproxy: HTTP {status}, verdict {verdict.get('verdict')}, ttl {verdict.get('ttlSeconds')} s")
     status, _, _ = signed(KEYS, "/internal/v1/usage", [{"tenant": "acme", "keyId": key_id, "minute": time.strftime("%Y-%m-%dT%H:%M:00Z", time.gmtime()), "allowed": 3, "rejected": 1}], credential)
     print(f"6. usage batch: HTTP {status}")
+    edge_ok = True
+    if os.environ.get("EDGE_URL", "http://127.0.0.1:15080"):
+        edge = os.environ.get("EDGE_URL", "http://127.0.0.1:15080")
+        status, _, quote = call("GET", edge + "/v1/quotes/sku-1", None, {"Authorization": "Bearer " + key})
+        print(f"7. through the edge sidecar to quotes: HTTP {status}, tenant {quote.get('tenant')} (the app saw a signed principal, not the key)")
+        status, _, problem = call("GET", edge + "/v1/quotes/sku-1", None, {"Authorization": "Bearer " + key[:-1] + ("A" if key[-1] != "A" else "B")})
+        print(f"8. one character changed: HTTP {status} {problem.get('type')} (rejected by the checksum, no call to keys)")
+        edge_ok = quote.get("tenant") == "acme" and status == 401
     status, _, revoked = call("POST", KEYS + f"/v1/keys/{key_id}/revoke", {}, auth)
     _, _, verdict = signed(KEYS, "/internal/v1/verify", {"keyId": key_id, "secret": secret}, credential)
-    print(f"7. revoke: HTTP {status}, status {revoked.get('status')}; verify now: {verdict.get('verdict')}")
-    ok = verdict.get("verdict") == "REVOKED"
+    print(f"9. revoke: HTTP {status}, status {revoked.get('status')}; verify now: {verdict.get('verdict')}")
+    status, _, _ = call("GET", os.environ.get("EDGE_URL", "http://127.0.0.1:15080") + "/v1/quotes/sku-1", None, {"Authorization": "Bearer " + key})
+    print(f"10. edge right after the revoke: HTTP {status} — a cached verdict lives up to its TTL hint (60 s): revocation latency is bounded, not zero (ADR 0009)")
+    ok = verdict.get("verdict") == "REVOKED" and edge_ok
     print("demo: OK" if ok else "demo: FAILED")
     return 0 if ok else 1
 

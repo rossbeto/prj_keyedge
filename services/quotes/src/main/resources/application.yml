@@ -1,0 +1,14 @@
+micronaut:
+  application:
+    name: quotes
+  server:
+    port: 15081
+    # Only reachable from the sidecar in the same network namespace (compose: network_mode service:edge).
+    host: 127.0.0.1
+endpoints:
+  health:
+    enabled: true
+    sensitive: false
+    details-visible: ANONYMOUS
+    disk-space:
+      path: /tmp
