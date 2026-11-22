@@ -5,7 +5,11 @@ import dev.keyedge.edge.app.MeterUsage;
 import dev.keyedge.edge.domain.Admission;
 import dev.keyedge.keyformat.PrincipalHeader;
 import dev.keyedge.problem.Problem;
+import dev.keyedge.problem.ProblemType;
 import dev.keyedge.problem.micronaut.ProblemResponses;
+import dev.keyedge.ratelimit.Ticker;
+import dev.keyedge.ratelimit.concurrency.ConcurrencyLimiter;
+import dev.keyedge.ratelimit.concurrency.Permit;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpRequest;
@@ -20,6 +24,8 @@ import java.time.InstantSource;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
@@ -29,6 +35,11 @@ import reactor.core.scheduler.Scheduler;
  * cache, verify call, limits), then stream the request to the app on 127.0.0.1 and the response
  * back (Reactor only at this byte boundary, D-11). The API key never reaches the app; a signed
  * principal does, and any inbound {@code X-Keyedge-*} header is removed so it cannot be spoofed.
+ *
+ * <p>A concurrency gate (fixed or adaptive, Phase 008) comes first: over the limit, the request is
+ * shed with 503 {@code overloaded} before any work. The permit's latency sample is the app's
+ * response time; an app 5xx or a failed proxy call is a drop (congestion signal); rejections at the
+ * edge release without a signal.
  */
 @Filter("/**")
 public class EdgeFilter implements HttpServerFilter {
@@ -40,8 +51,15 @@ public class EdgeFilter implements HttpServerFilter {
   private final URI app;
   private final byte[] principalKey;
   private final InstantSource clock;
+  private final ConcurrencyLimiter limiter;
+  private final Ticker ticker;
+  private final LongAdder shed = new LongAdder();
+  private static final long DROPPED = -2;
+  private static final long NO_SIGNAL = -1;
 
   EdgeFilter(EdgeRuntime runtime) {
+    this.limiter = runtime.limiter();
+    this.ticker = runtime.ticker();
     this.admit = runtime.admit();
     this.usage = runtime.usage();
     this.proxy = runtime.proxy();
@@ -61,14 +79,39 @@ public class EdgeFilter implements HttpServerFilter {
     String method = request.getMethodName();
     String path = request.getPath();
     Optional<String> auth = request.getHeaders().getAuthorization();
+    Optional<Permit> slot = limiter.tryAcquire();
+    if (slot.isEmpty()) {
+      shed.increment();
+      return Mono.just(
+          ProblemResponses.of(
+              Problem.of(ProblemType.OVERLOADED, null).with(Problem.RETRY_AFTER_SECONDS, 1L)));
+    }
+    Permit permit = slot.get();
+    var outcome = new AtomicLong(NO_SIGNAL);
     gate.enter();
     return Mono.fromCallable(() -> admit.admit(method, path, auth))
         .subscribeOn(decisions)
-        .flatMap(admission -> respond(request, admission))
-        .doFinally(signal -> gate.leave());
+        .flatMap(admission -> respond(request, admission, outcome))
+        .doFinally(signal -> {
+          long o = outcome.get();
+          if (o >= 0) {
+            permit.onSuccess(o);
+          } else if (o == DROPPED) {
+            permit.onDropped();
+          } else {
+            permit.onIgnore();
+          }
+          gate.leave();
+        });
   }
 
-  private Mono<MutableHttpResponse<?>> respond(HttpRequest<?> request, Admission admission) {
+  /** Requests shed by the concurrency gate, for metrics. */
+  public long shed() {
+    return shed.sum();
+  }
+
+  private Mono<MutableHttpResponse<?>> respond(
+      HttpRequest<?> request, Admission admission, AtomicLong outcome) {
     return switch (admission) {
       case Admission.Rejected(var type, var retryAfter, var principal) -> {
         principal.ifPresent(p -> usage.record(p.tenant(), p.keyId(), false));
@@ -81,14 +124,19 @@ public class EdgeFilter implements HttpServerFilter {
         }
         yield Mono.just(ProblemResponses.of(problem));
       }
-      case Admission.Admitted(var principal) -> {
+      case Admission.Admitted(var principal, var stale) -> {
         usage.record(principal.tenant(), principal.keyId(), true);
-        yield Mono.from(proxy.proxy(toApp(request, principal)));
+        long start = ticker.nanos();
+        yield Mono.from(proxy.proxy(toApp(request, principal, stale)))
+            .doOnNext(
+                r -> outcome.set(r.getStatus().getCode() >= 500 ? DROPPED : ticker.nanos() - start))
+            .doOnError(e -> outcome.set(DROPPED));
       }
     };
   }
 
-  private MutableHttpRequest<?> toApp(HttpRequest<?> request, PrincipalHeader.Principal principal) {
+  private MutableHttpRequest<?> toApp(
+      HttpRequest<?> request, PrincipalHeader.Principal principal, boolean stale) {
     MutableHttpRequest<?> out =
         request
             .mutate()
@@ -106,8 +154,14 @@ public class EdgeFilter implements HttpServerFilter {
     out.getHeaders().add(PrincipalHeader.PRINCIPAL, signed.principal());
     out.getHeaders().add(PrincipalHeader.SIGNATURE, signed.signature());
     out.getHeaders().add("X-Forwarded-Proto", request.isSecure() ? "https" : "http");
+    if (stale) {
+      out.getHeaders().add(STALE_HEADER, "1"); // admitted on a verdict past expiry (fail-static)
+    }
     return out;
   }
+
+  /** Told to the app when the verdict was served stale (inbound copies are stripped). */
+  public static final String STALE_HEADER = "X-Keyedge-Stale";
 
   /** Bundles what the filter needs (built in wiring). */
   public record EdgeRuntime(
@@ -119,5 +173,7 @@ public class EdgeFilter implements HttpServerFilter {
       URI app,
       byte[] principalKey,
       InstantSource clock,
-      Duration drainTimeout) {}
+      Duration drainTimeout,
+      ConcurrencyLimiter limiter,
+      Ticker ticker) {}
 }

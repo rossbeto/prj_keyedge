@@ -17,15 +17,19 @@ dependencies {
     implementation(platform(libs.awssdk.bom))
     implementation("software.amazon.awssdk:secretsmanager")
     implementation(libs.caffeine)
+    implementation(platform(libs.resilience4j.bom))
+    implementation("io.github.resilience4j:resilience4j-circuitbreaker")
+    implementation("io.github.resilience4j:resilience4j-bulkhead")
     implementation("io.micronaut:micronaut-http-server-netty")
     implementation("io.micronaut:micronaut-http-client")
     implementation("io.micronaut:micronaut-management")
     implementation("io.micronaut.reactor:micronaut-reactor")
     testImplementation(project(":libs:testkit"))
+    testImplementation(libs.jqwik)
 }
 pitest {
     targetClasses = listOf("dev.keyedge.edge.domain.*", "dev.keyedge.edge.app.*", "dev.keyedge.edge.adapters.cache.*")
-    // Baseline 60.4 %: PIT reports the verdict-cache tests as not covering it (timing-sensitive concurrent
-    // tests excluded under instrumentation; BACKLOG B-13).
-    mutationThreshold = 55
+    // targetTests defaults to the targetClasses globs, which missed dev.keyedge.edge.adapters.*Test (B-13).
+    targetTests = listOf("dev.keyedge.edge.domain.*", "dev.keyedge.edge.app.*", "dev.keyedge.edge.adapters.*")
+    mutationThreshold = 75 // 84 % on 2026-11-23
 }

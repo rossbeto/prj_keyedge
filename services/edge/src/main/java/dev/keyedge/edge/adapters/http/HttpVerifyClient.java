@@ -39,8 +39,16 @@ public final class HttpVerifyClient implements VerifyClient {
       String body =
           json.writeValueAsString(Map.of("keyId", keyId.toString(), "secret", secret.text()));
       var response = client.post("/internal/v1/verify", body);
-      if (response.statusCode() != 200) {
-        throw new Verdicts.Unavailable("verify answered HTTP " + response.statusCode(), null);
+      int status = response.statusCode();
+      if (status != 200) {
+        // a 4xx is our bug (signature, contract), not "keys is down": the breaker ignores it
+        throw new Verdicts.Unavailable(
+            "verify answered HTTP " + status,
+            null,
+            status >= 400 && status < 500
+                ? Verdicts.Unavailable.Reason.CONTRACT
+                : Verdicts.Unavailable.Reason.DOWN,
+            null);
       }
       Map<String, Object> v =
           json.readValue(response.body(), Argument.mapOf(String.class, Object.class));

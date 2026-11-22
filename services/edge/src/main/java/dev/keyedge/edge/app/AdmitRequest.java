@@ -42,14 +42,19 @@ public final class AdmitRequest {
     if (!(KeyFormat.parse(bearer.get()) instanceof ParseResult.Parsed parsed)) {
       return Admission.Rejected.of(ProblemType.MALFORMED_KEY);
     }
-    KeyCheck check;
+    Verdicts.Answer answer;
     try {
-      check = verdicts.verdict(parsed.keyId(), parsed.secret());
+      answer = verdicts.answer(parsed.keyId(), parsed.secret());
     } catch (Verdicts.Unavailable e) {
+      // 503, not 401: the key may well be valid, the client should retry (D-27)
+      Duration retry = e.retryAfter().orElse(Duration.ofSeconds(1));
       return new Admission.Rejected(
-          ProblemType.UPSTREAM_UNAVAILABLE, Optional.of(Duration.ofSeconds(1)), Optional.empty());
+          ProblemType.UPSTREAM_UNAVAILABLE,
+          Optional.of(retry.compareTo(Duration.ofSeconds(1)) < 0 ? Duration.ofSeconds(1) : retry),
+          Optional.empty());
     }
-    return switch (check) {
+    boolean stale = answer.stale();
+    return switch (answer.check()) {
       case KeyCheck.Valid v when !v.scopes().contains(needed.get()) ->
           new Admission.Rejected(
               ProblemType.MISSING_SCOPE, Optional.empty(), Optional.of(principal(v)));
@@ -59,7 +64,7 @@ public final class AdmitRequest {
               .<Admission>map(wait ->
                   new Admission.Rejected(
                       ProblemType.RATE_LIMITED, Optional.of(wait), Optional.of(principal(v))))
-              .orElseGet(() -> new Admission.Admitted(principal(v)));
+              .orElseGet(() -> new Admission.Admitted(principal(v), stale));
       case KeyCheck.Malformed m -> Admission.Rejected.of(ProblemType.MALFORMED_KEY);
       case KeyCheck.Revoked r -> Admission.Rejected.of(ProblemType.REVOKED_KEY);
       case KeyCheck.Expired e -> Admission.Rejected.of(ProblemType.EXPIRED_KEY);

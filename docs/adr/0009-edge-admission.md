@@ -16,7 +16,8 @@ Date: 2026-11-23 · Status: accepted
 
 ## Consequences
 - **Revocation latency is bounded, not zero:** a revoked key keeps working at a sidecar until its cached verdict
-  expires (≤ the TTL hint, 60 s by default). Shorter TTLs cost more verify calls; push-invalidation is BACKLOG.
+  expires (≤ the TTL hint, 60 s by default; TTL + stale window while keys is down, ADR 0010). Shorter TTLs cost
+  more verify calls; push-invalidation is BACKLOG.
 - Rate limits are per sidecar task (effective limit = tasks × plan).
 - Usage metering is best-effort and bounded: windows are merged while keys is unreachable and the oldest are dropped
   and counted beyond 60 windows.

@@ -88,7 +88,7 @@ emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 ## ---- Lab notebook (experiments: hypothesis -> measurement -> verdict) --------------------
 .PHONY: lab
 RUN_ID := $(shell date +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null)
-lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost
+lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed
 	@case "$(E)" in \
 	  naive-bucket-race) \
 	    $(GRADLE) :libs:ratelimit:jcstress -Pjcstress.mode=$(or $(MODE),quick) -Pjcstress.tests='.*Bucket.*|.*Gcra.*|.*Permit.*' > build/jcstress-naive-bucket-race.log 2>&1 || true; \
@@ -97,7 +97,13 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost
 	    $(GRADLE) :libs:ratelimit:jmh && \
 	    python3 lab/jmh_verdict.py libs/ratelimit/build/results/jmh/results.json results/jmh/$(RUN_ID) && \
 	    cp results/jmh/$(RUN_ID)/limiter-cost.json results/labs/limiter-cost.json ;; \
-	  *) echo "unknown experiment '$(E)' (naive-bucket-race | limiter-cost)"; exit 2 ;; \
+	  single-flight) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*EdgeExperiments.singleFlight' ;; \
+	  refresh-ahead) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*EdgeExperiments.refreshAhead' ;; \
+	  vt-handoff) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*EdgeExperiments.vtHandoff' ;; \
+	  control-plane-outage) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*ResilienceExperiments.controlPlaneOutage' ;; \
+	  breaker-vs-none) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*ResilienceExperiments.breakerVsNone' ;; \
+	  adaptive-vs-fixed) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*AdaptiveLimitExperiments.adaptiveVsFixed' ;; \
+	  *) echo "unknown experiment '$(E)'"; exit 2 ;; \
 	esac
 
 ## ---- Services ---------------------------------------------------------------------------
@@ -142,14 +148,20 @@ logs: ## Follow logs: make logs S=keys
 ps: ## Containers of the stack
 	$(COMPOSE) ps
 
-chaos: ## Switch the simulator scenario: make chaos S=brownout-pricing
-	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=$(S)" && echo
+chaos: ## Simulator scenario (S=brownout-pricing...) or control-plane chaos via Toxiproxy (S=keys-down|keys-slow|keys-flaky)
+	@case "$(S)" in \
+	  keys-*) scripts/toxics.sh scenario $(S) ;; \
+	  *) curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=$(S)" && echo ;; \
+	esac
 
 chaos-reset: ## Healthy scenario and zeroed counters; Toxiproxy toxics cleared by scripts/toxics.sh
 	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=healthy" > /dev/null && curl -sf -X POST http://127.0.0.1:15201/__reset && echo
 	scripts/toxics.sh clear
 
-.PHONY: demo calibrate
+.PHONY: demo calibrate resilience-check
+resilience-check: ## Control plane down under the running stack: warm key served stale, cold key 503 (~70 s)
+	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/resilience_check.py )
+
 demo: ## Walk through the running stack: token, create, replay, signed verify, usage, revoke
 	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/demo.py )
 

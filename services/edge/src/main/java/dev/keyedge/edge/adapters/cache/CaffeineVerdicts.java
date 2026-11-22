@@ -3,6 +3,8 @@ package dev.keyedge.edge.adapters.cache;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
+import dev.keyedge.edge.domain.FailurePolicy;
+import dev.keyedge.edge.domain.StaleDecision;
 import dev.keyedge.edge.ports.Verdicts;
 import dev.keyedge.edge.ports.VerifyClient;
 import dev.keyedge.keyformat.KeyCheck;
@@ -27,6 +29,11 @@ import java.util.concurrent.atomic.LongAdder;
  * impatient caller does not fail the others; per-entry expiry from the verdict's TTL hint;
  * refresh-ahead at {@code refreshRatio} of the TTL, served from the old value while the reload
  * runs; rejections expire after a short TTL and are never refreshed.
+ *
+ * <p>Fail-static (D-27, Phase 008): a Valid entry stays in Caffeine for {@code staleWindow} past
+ * its expiry. A reader past the expiry revalidates (one shared revalidation per key, single flight
+ * again); if the control plane is unavailable, {@link StaleDecision} decides whether the old Valid
+ * may be served (flagged stale) or the caller gets {@link Verdicts.Unavailable}.
  */
 public final class CaffeineVerdicts implements Verdicts {
   private record Key(KeyId keyId, KeySecret secret) {}
@@ -41,8 +48,20 @@ public final class CaffeineVerdicts implements Verdicts {
   private final VerifyClient client;
   private final Executor executor;
   private final Set<Key> refreshing = ConcurrentHashMap.newKeySet();
+  private final ConcurrentHashMap<Key, CompletableFuture<Timed>> revalidating =
+      new ConcurrentHashMap<>();
   private final LongAdder loads = new LongAdder();
   private final LongAdder refreshes = new LongAdder();
+  private final LongAdder staleServed = new LongAdder();
+  private final FailurePolicy policy;
+  private final Duration staleWindow;
+
+  /** Fail-static settings; {@link #closed()} keeps the Phase 007 behaviour. */
+  public record Staleness(FailurePolicy policy, Duration staleWindow) {
+    public static Staleness closed() {
+      return new Staleness(FailurePolicy.FAIL_CLOSED, Duration.ZERO);
+    }
+  }
 
   public CaffeineVerdicts(
       VerifyClient client,
@@ -52,7 +71,30 @@ public final class CaffeineVerdicts implements Verdicts {
       Duration waitTimeout,
       Duration negativeTtl,
       double refreshRatio) {
+    this(
+        client,
+        clock,
+        executor,
+        maxEntries,
+        waitTimeout,
+        negativeTtl,
+        refreshRatio,
+        Staleness.closed());
+  }
+
+  public CaffeineVerdicts(
+      VerifyClient client,
+      InstantSource clock,
+      Executor executor,
+      long maxEntries,
+      Duration waitTimeout,
+      Duration negativeTtl,
+      double refreshRatio,
+      Staleness staleness) {
     this.client = client;
+    this.policy = staleness.policy();
+    this.staleWindow =
+        staleness.policy() == FailurePolicy.FAIL_STATIC ? staleness.staleWindow() : Duration.ZERO;
     this.executor = executor;
     this.clock = clock;
     this.waitTimeout = waitTimeout;
@@ -62,7 +104,7 @@ public final class CaffeineVerdicts implements Verdicts {
         Caffeine.newBuilder()
             .maximumSize(maxEntries)
             .executor(executor)
-            .expireAfter(new ExpireAtTtl(clock))
+            .expireAfter(new ExpireAtTtl(clock, staleWindow))
             .buildAsync((key, ex) ->
                 CompletableFuture.supplyAsync(
                     () -> {
@@ -83,14 +125,65 @@ public final class CaffeineVerdicts implements Verdicts {
 
   @Override
   public KeyCheck verdict(KeyId keyId, KeySecret secret) {
+    return answer(keyId, secret).check();
+  }
+
+  @Override
+  public Answer answer(KeyId keyId, KeySecret secret) {
     var key = new Key(keyId, secret);
-    Timed t;
     CompletableFuture<Timed> future = cache.get(key);
+    Timed t = await(key, future, true);
+    Instant now = clock.instant();
+    if (now.isBefore(t.expireAt())) {
+      if (!now.isBefore(t.refreshAt()) && refreshing.add(key)) {
+        refreshAhead(key);
+      }
+      return new Answer(t.check(), false);
+    }
+    // past expiry but not evicted yet (a Valid one lingers for the stale window): revalidate
+    return revalidate(key, t);
+  }
+
+  /** Past expiry, inside the stale window: one shared reload; on failure, maybe serve stale. */
+  private Answer revalidate(Key key, Timed old) {
+    CompletableFuture<Timed> reload =
+        revalidating.computeIfAbsent(
+            key,
+            k -> {
+              CompletableFuture<Timed> f =
+                  CompletableFuture.supplyAsync(
+                      () -> {
+                        loads.increment();
+                        return timed(client.verify(k.keyId(), k.secret()));
+                      },
+                      executor);
+              var unused =
+                  f.whenComplete((fresh, error) -> {
+                    if (fresh != null) {
+                      cache.put(k, CompletableFuture.completedFuture(fresh));
+                    }
+                    revalidating.remove(k, f);
+                  });
+              return f;
+            });
     try {
-      t = future.copy().orTimeout(waitTimeout.toMillis(), TimeUnit.MILLISECONDS).join();
+      return new Answer(await(key, reload, false).check(), false);
+    } catch (Verdicts.Unavailable e) {
+      if (StaleDecision.mayServeStale(
+          policy, old.check(), old.expireAt(), staleWindow, clock.instant())) {
+        staleServed.increment();
+        return new Answer(old.check(), true);
+      }
+      throw e;
+    }
+  }
+
+  private Timed await(Key key, CompletableFuture<Timed> future, boolean cached) {
+    try {
+      return future.copy().orTimeout(waitTimeout.toMillis(), TimeUnit.MILLISECONDS).join();
     } catch (CompletionException e) {
       Throwable cause = e.getCause();
-      if (!(cause instanceof TimeoutException)) {
+      if (cached && !(cause instanceof TimeoutException)) {
         // A failed load: drop exactly that future so the next caller reloads (Caffeine evicts it
         // asynchronously). A timeout keeps it: the load is still running and others may use it.
         cache.asMap().remove(key, future);
@@ -104,10 +197,6 @@ public final class CaffeineVerdicts implements Verdicts {
               : "verify failed",
           cause);
     }
-    if (!clock.instant().isBefore(t.refreshAt()) && refreshing.add(key)) {
-      refreshAhead(key);
-    }
-    return t.check();
   }
 
   /**
@@ -143,16 +232,25 @@ public final class CaffeineVerdicts implements Verdicts {
     return refreshes.sum();
   }
 
-  /** Expire each entry at its own deadline. */
+  /** Requests answered with a stale Valid (fail-static), for metrics and tests. */
+  public long staleServed() {
+    return staleServed.sum();
+  }
+
+  /** Expire each entry at its own deadline; a Valid one lingers for the stale window. */
   private static final class ExpireAtTtl implements Expiry<Key, Timed> {
     private final InstantSource clock;
+    private final Duration staleWindow;
 
-    ExpireAtTtl(InstantSource clock) {
+    ExpireAtTtl(InstantSource clock, Duration staleWindow) {
       this.clock = clock;
+      this.staleWindow = staleWindow;
     }
 
     private long nanosUntil(Timed t) {
-      return Math.max(0, Duration.between(clock.instant(), t.expireAt()).toNanos());
+      Instant until =
+          t.check() instanceof KeyCheck.Valid ? t.expireAt().plus(staleWindow) : t.expireAt();
+      return Math.max(0, Duration.between(clock.instant(), until).toNanos());
     }
 
     @Override

@@ -116,3 +116,40 @@ measured fix — one refresh per key, swap in a completed future — took p99 fr
 < 0.1 ms median.
 **Result** ([results/labs/vt-handoff.json](../results/labs/vt-handoff.json)): **confirmed**, median +0.088 ms,
 p99 +0.157 ms over 20 000 calls (close to the threshold on this shared host; one earlier run measured above it).
+
+## control-plane-outage (Phase 008)
+
+**Hypothesis.** With keys down, fail-static keeps admitting warm valid keys (≥ 99 % after their TTL) while
+fail-closed rejects them (≤ 1 %); revoked keys are never admitted under either policy.
+**Method.** In-process: the real verdict cache, breaker and HTTP verify client against a fake keys server
+(its counters are the independent measurement). 300 req/s for 10 s — 80 % over 40 warm keys, 10 % cold keys,
+10 % over 5 revoked keys; TTL 2 s, stale window 30 s; keys answers 503 from t = 2 s. Counted after the TTL.
+**Result** ([results/labs/control-plane-outage.json](../results/labs/control-plane-outage.json)): **confirmed** —
+warm keys 100 % (fail-static, ~1 600 stale answers) vs 0 % (fail-closed); cold keys 0 % under both; revoked keys
+admitted 0 times; only 25–26 verify calls reached keys during the outage (the breaker opened). The first run reported
+300 revoked admissions: a bug in the **fake** (it revoked one of the five ids), caught because the experiment
+counted revoked keys separately. Stack check: `make resilience-check` on both emulators (ADR 0010).
+
+## breaker-vs-none (Phase 008)
+
+**Hypothesis.** With keys hanging, every cold request waits for the 300 ms timeout without a breaker; with one,
+p99 < 50 ms once it is open and keys stops receiving calls.
+**Method.** 100 req/s for 5 s, every request a never-seen key, keys answers after 5 s.
+**Result** ([results/labs/breaker-vs-none.json](../results/labs/breaker-vs-none.json)): **confirmed** — p99 after
+the first second 301 ms without vs 0.6 ms with the breaker; 500 vs 50 calls reached keys (max 500 vs 50 in flight
+at keys).
+**Interview line.** "The breaker is less about our latency than about the control plane: it went from 500 hanging
+requests to 50 and then silence, which is what lets it recover."
+
+## adaptive-vs-fixed (Phase 008)
+
+**Hypothesis.** In a brown-out (capacity 800 → 267 req/s) under 600 req/s offered, an adaptive concurrency limit
+sheds the excess early and keeps goodput (2xx within 500 ms) ≥ 1.2× a fixed limit of 200.
+**Method.** An app with 16 workers, 20 ms service time, 60 ms from t = 3 s; open-model load 600 req/s for 11 s
+through each limiter from `libs/ratelimit`; goodput over the 8 s brown-out.
+**Result** ([results/labs/adaptive-vs-fixed.json](../results/labs/adaptive-vs-fixed.json)): **confirmed** —
+goodput 27/s fixed (p99 774 ms: 200 in flight queue behind 16 workers, Little's law) vs 239/s gradient (p99
+187 ms) and 268/s AIMD (p99 468 ms); ratio gradient/fixed 8.9. AIMD reached more goodput but ran close to the
+SLO; gradient kept latency low. The edge defaults to gradient.
+**Interview line.** "A fixed limit of 200 looked generous until capacity fell: Little's law turned it into a
+750 ms queue and almost nothing met the SLO. The adaptive limit shrank to what the app could serve."

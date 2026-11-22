@@ -72,6 +72,7 @@ services:
       MICRONAUT_SERVER_HOST: 0.0.0.0
       MICRONAUT_ENVIRONMENTS: local
       KEYEDGE_ISSUER_JWKS: http://issuer:15110/.well-known/jwks.json
+      KEYEDGE_KEYS_VERIFY_TTL: ${KEYEDGE_VERIFY_TTL:-60s}
       KEYEDGE_AWS_TARGET: ${KEYEDGE_AWS_TARGET:-floci}
       KEYEDGE_AWS_ENDPOINT: ${KEYEDGE_CONTAINER_AWS_ENDPOINT:-http://floci:4566}
       # AWS Emulator's certificate names only localhost/127.0.0.1: connect to the container, verify "localhost".
@@ -118,7 +119,10 @@ services:
     user: "${KEYEDGE_UID:-65532}:${KEYEDGE_GID:-65532}"
     environment:
       MICRONAUT_SERVER_HOST: 0.0.0.0
-      KEYEDGE_KEYS_URL: ${KEYEDGE_EDGE_KEYS_URL:-http://keys:15100}
+      # through Toxiproxy so `make chaos S=keys-down|keys-slow` can break the control plane (Phase 008)
+      KEYEDGE_KEYS_URL: ${KEYEDGE_EDGE_KEYS_URL:-http://toxiproxy:15214}
+      KEYEDGE_EDGE_RESILIENCE_FAILURE_POLICY: ${KEYEDGE_FAILURE_POLICY:-FAIL_STATIC}
+      KEYEDGE_EDGE_CONCURRENCY_MODE: ${KEYEDGE_CONCURRENCY_MODE:-GRADIENT}
       KEYEDGE_APP_URL: http://127.0.0.1:15081
       KEYEDGE_AWS_TARGET: ${KEYEDGE_AWS_TARGET:-floci}
       KEYEDGE_AWS_ENDPOINT: ${KEYEDGE_CONTAINER_AWS_ENDPOINT:-http://floci:4566}
@@ -135,6 +139,7 @@ services:
     stop_grace_period: 30s
     depends_on:
       keys: { condition: service_healthy }
+      toxiproxy: { condition: service_started }
     healthcheck:
       test: ["CMD", "java", "-cp", "/app/lib/*", "dev.keyedge.ops.HealthProbe", "http://127.0.0.1:15080/health/readiness"]
       interval: 5s
@@ -180,3 +185,4 @@ services:
     mem_limit: 128m
     depends_on:
       upstream-sim: { condition: service_healthy }
+      keys: { condition: service_healthy }

@@ -7,6 +7,7 @@ import dev.keyedge.edge.adapters.cache.CaffeineVerdicts;
 import dev.keyedge.edge.adapters.http.HttpUsageSink;
 import dev.keyedge.edge.adapters.http.HttpVerifyClient;
 import dev.keyedge.edge.adapters.ratelimit.GcraKeyLimits;
+import dev.keyedge.edge.adapters.resilience.ResilientVerifyClient;
 import dev.keyedge.edge.adapters.secrets.EdgeSecrets;
 import dev.keyedge.edge.api.EdgeDrain;
 import dev.keyedge.edge.api.EdgeFilter;
@@ -21,6 +22,10 @@ import dev.keyedge.edge.ports.Verdicts;
 import dev.keyedge.edge.ports.VerifyClient;
 import dev.keyedge.keyformat.Scope;
 import dev.keyedge.ratelimit.Ticker;
+import dev.keyedge.ratelimit.concurrency.AimdLimiter;
+import dev.keyedge.ratelimit.concurrency.ConcurrencyLimiter;
+import dev.keyedge.ratelimit.concurrency.FixedLimiter;
+import dev.keyedge.ratelimit.concurrency.GradientLimiter;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Primary;
@@ -77,15 +82,47 @@ public class EdgeFactory {
 
   @Singleton
   VerifyClient verifyClient(
-      HttpClient http, SecretBytes secrets, EdgeConfig cfg, InstantSource clock, JsonMapper json) {
-    return new HttpVerifyClient(
-        http,
-        URI.create(cfg.keysUrl()),
-        cfg.callerId(),
-        secrets.bytes(cfg.callerSecret(), cfg.callerId()),
-        clock,
-        cfg.verifyTimeout(),
-        json);
+      HttpClient http,
+      SecretBytes secrets,
+      EdgeConfig cfg,
+      ResilienceConfig r,
+      InstantSource clock,
+      JsonMapper json) {
+    VerifyClient http1 =
+        new HttpVerifyClient(
+            http,
+            URI.create(cfg.keysUrl()),
+            cfg.callerId(),
+            secrets.bytes(cfg.callerSecret(), cfg.callerId()),
+            clock,
+            cfg.verifyTimeout(),
+            json);
+    if (!r.breakerEnabled()) {
+      return http1;
+    }
+    return new ResilientVerifyClient(
+        http1,
+        new ResilientVerifyClient.Settings(
+            r.slidingWindow(),
+            r.minimumCalls(),
+            r.failureRateThreshold(),
+            r.slowCallDuration(),
+            r.slowCallRateThreshold(),
+            r.waitInOpen(),
+            r.halfOpenCalls(),
+            r.bulkheadMaxConcurrent()),
+        Ticker.system());
+  }
+
+  @Singleton
+  ConcurrencyLimiter concurrencyLimiter(ConcurrencyConfig c) {
+    return switch (c.mode()) {
+      case FIXED -> new FixedLimiter(c.fixedLimit());
+      case AIMD ->
+          new AimdLimiter(c.initial(), c.min(), c.max(), c.aimdSlow().toNanos(), c.aimdBackoff());
+      case GRADIENT ->
+          new GradientLimiter(c.initial(), c.min(), c.max(), c.gradientWindow(), c.smoothing());
+    };
   }
 
   @Singleton
@@ -93,7 +130,8 @@ public class EdgeFactory {
       VerifyClient client,
       InstantSource clock,
       @Named(TaskExecutors.VIRTUAL) ExecutorService vt,
-      EdgeConfig cfg) {
+      EdgeConfig cfg,
+      ResilienceConfig r) {
     return new CaffeineVerdicts(
         client,
         clock,
@@ -101,7 +139,8 @@ public class EdgeFactory {
         cfg.maxCachedVerdicts(),
         cfg.verifyWait(),
         cfg.negativeTtl(),
-        cfg.refreshRatio());
+        cfg.refreshRatio(),
+        new CaffeineVerdicts.Staleness(r.failurePolicy(), r.staleWindow()));
   }
 
   @Singleton
@@ -153,6 +192,7 @@ public class EdgeFactory {
       SecretBytes secrets,
       EdgeConfig cfg,
       InstantSource clock,
+      ConcurrencyLimiter limiter,
       @Named(TaskExecutors.VIRTUAL) ExecutorService vt)
       throws MalformedURLException {
     URI app = URI.create(cfg.appUrl());
@@ -166,7 +206,9 @@ public class EdgeFactory {
         app,
         secrets.bytes(cfg.principalSecret(), "key"),
         clock,
-        cfg.drainTimeout());
+        cfg.drainTimeout(),
+        limiter,
+        Ticker.system());
   }
 
   @Singleton
