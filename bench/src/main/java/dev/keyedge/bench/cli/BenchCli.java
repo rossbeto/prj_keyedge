@@ -48,6 +48,12 @@ public final class BenchCli {
     return v == null || v.isBlank() ? dflt : v;
   }
 
+  /** A cpuset from the environment; "none" (CI runners: 4 CPUs) means no pinning. */
+  static String cpus(String name) {
+    String v = env(name, "");
+    return v.equals("none") ? "" : v;
+  }
+
   static Scenario scenario(String name) {
     return Json.YAML.readValue(Path.of("bench/scenarios", name + ".yaml").toFile(), Scenario.class);
   }
@@ -87,9 +93,9 @@ public final class BenchCli {
               .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
       var runner =
           new RunScenario(
-              new K6Docker(Path.of("bench/k6"), env("BENCH_K6_CPUS", ""), "keyedge-edge-1"),
+              new K6Docker(Path.of("bench/k6"), cpus("BENCH_K6_CPUS"), "keyedge-edge-1"),
               new ComposeStack(
-                  containerEnv, env("BENCH_SUT_CPUS", ""), env("BENCH_SUPPORT_CPUS", ""), target),
+                  containerEnv, cpus("BENCH_SUT_CPUS"), cpus("BENCH_SUPPORT_CPUS"), target),
               new FsResultStore(RESULTS),
               new HostEnvironment(target),
               Clock.systemUTC(),

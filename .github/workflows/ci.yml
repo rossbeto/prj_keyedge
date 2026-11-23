@@ -5,14 +5,15 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
-permissions:
-  contents: read
+permissions: {} # nothing by default; each job asks for what it needs
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   lint-unit:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -24,6 +25,8 @@ jobs:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-disabled: ${{ startsWith(github.ref, 'refs/tags/') }} # tag runs publish nothing but build clean
       - name: Forbidden terms (files, history, every committed revision)
         run: python3 scripts/forbidden_terms.py check --history --all-revisions
       - name: Grafana dashboards are generated (no hand edits)
@@ -32,11 +35,15 @@ jobs:
         run: ./gradlew spotlessCheck checkstyleMain checkstyleTest
       - name: Fast tests
         run: ./gradlew test
+      - name: Generated docs match the results (notebook index, bench sections, README block, charts)
+        run: make docs-check
       - name: Secret scan
         run: scripts/gitleaks.sh
   cdk:
     # CDK app: cdk-nag gate (synth both modes) and the construct/stack/snapshot tests (jsii needs Node)
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -47,6 +54,8 @@ jobs:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-disabled: ${{ startsWith(github.ref, 'refs/tags/') }} # tag runs publish nothing but build clean
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - name: Versions in lock-step (catalog == uv.lock, cdk.json contexts)
         run: make cdk-versions-check

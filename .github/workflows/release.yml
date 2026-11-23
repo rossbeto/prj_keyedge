@@ -1,0 +1,65 @@
+# Release on a version tag (Phase 016): JVM images, SBOMs (classpath + image), Trivy gate, changelog, and a
+# DRAFT GitHub release with the SBOMs attached; the maintainer reviews and publishes it. Image signing stays
+# local (make sign) until keyless signing has a real CI identity (USER-ACTIONS U-08).
+name: release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)build a draft release for"
+        required: true
+permissions: {} # nothing by default; each job asks for what it needs
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 45
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-disabled: true # publishing: never restore a cache another run wrote
+      - name: Release checks (tag matches the changelog, results valid, docs-check, terms, secrets)
+        run: make release-check TAG="$TAG" RELEASE_ALLOW_DIRTY=0
+      - name: Images, SBOMs, Trivy (fail on CRITICAL)
+        run: make images && make sbom && make scan
+      - name: Release notes from the changelog
+        run: make changelog TAG="$TAG" > release-notes.md
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ github.run_id }}
+          path: |
+            build/supply-chain/
+            release-notes.md
+  draft:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write # the only job that writes: a draft release
+    timeout-minutes: 10
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-${{ github.run_id }}
+      - name: Draft release (published by the maintainer)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$TAG" --draft --verify-tag --notes-file release-notes.md build/supply-chain/*.json

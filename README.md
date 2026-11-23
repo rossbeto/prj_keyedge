@@ -1,35 +1,66 @@
 # keyedge
 
-> **Lab project.** A portfolio lab that answers one question with code, tests and measurements:
-> *how do you issue, store and rotate API keys safely, and how does a small sidecar next to every
-> service authenticate, rate-limit and protect it without becoming the outage itself?*
+> **A lab, not a product.** One question answered with code, tests and measurements: *how do you issue, store
+> and rotate API keys safely, and how does a small sidecar next to every service authenticate, rate-limit and
+> protect it without becoming the outage itself?* Everything runs locally, on two AWS emulators; no phase
+> touches a real AWS account.
 
-**Status:** Phase 013 of 16: libraries, the two-emulator AWS switch ([parity](docs/parity.md)), the keys control plane, a local issuer, the upstream simulator and the **edge sidecar** in front of a demo app — `make up && make demo` runs the whole path on either emulator. The sidecar survives a control-plane outage (breaker, fail-static cache, adaptive concurrency limit): `make resilience-check`. The quote use case runs three ways — structured concurrency, futures on virtual threads and a Reactor twin — with the reasoning and measurements in [virtual-threads-vs-reactor.md](docs/virtual-threads-vs-reactor.md): `make quotes-check`. Native images (edge, quotes, keys) run the same stack with `make up FLAVOR=native`; SBOMs, a Trivy gate and cosign signatures: `make sbom scan sign verify` ([ADR 0012](docs/adr/0012-native-images-and-supply-chain.md)). `make observe` adds traces (Jaeger), metrics (Prometheus, Grafana dashboards as code) and JSON logs; `make jfr` records custom JFR events; the [runbook](docs/runbook.md) uses them. The AWS footprint is a CDK app in Java (`infra/java`, driven by `infra/spec/infra-spec.yaml`, cdk-nag gated); `make up` deploys its data and config stacks to the emulator and the services read their names from the SSM contract they write; secrets are SOPS-encrypted to age + KMS ([ADR 0014–0016](docs/adr/)). The same infrastructure exists as a CDK app in Python, and `make cdk-parity` proves both synthesise byte-identical templates ([docs/infra.md](docs/infra.md), [ADR 0017](docs/adr/0017-two-cdk-languages-one-spec.md)).
+A control plane issues hashed, rotatable API keys (Java 25, Micronaut 5, DynamoDB). A **GraalVM-native
+sidecar** checks every request next to the app it protects: verdict cache with single flight and refresh-ahead,
+a lock-free limiter proven with jcstress, a circuit breaker with a fail-static policy, adaptive concurrency.
+The demo app behind it fans out to three flaky upstreams three ways (structured concurrency, futures on virtual
+threads, a Reactor twin). The AWS footprint is a CDK app written twice, in Java and in Python, proven
+byte-identical, and it runs as a real two-container ECS task on an emulator.
 
-**Revocation latency is bounded, not zero:** a revoked key keeps working at a sidecar until its cached verdict expires
-(TTL hint, 60 s), and while the control plane is down up to TTL + stale window (5 min) under the default fail-static
-policy ([ADR 0009](docs/adr/0009-edge-admission.md), [ADR 0010](docs/adr/0010-fail-static-control-plane-policy.md)).
-
-## What it will contain
-
-| Part | What it is | Headline technique |
-|---|---|---|
-| `services/keys` | control plane: tenants, API keys (hashed, rotatable, revocable), usage | Java 25 on virtual threads, sealed domain types, DynamoDB transactions, idempotency, RFC 9457 |
-| `services/edge` | sidecar in the same task as each service: checks the key, rate-limits, sheds load | GraalVM native image, single-flight cache, circuit breaker, lock-free limiter |
-| `services/quotes` | demo app behind the sidecar, three upstream calls | structured concurrency vs `CompletableFuture` vs a Reactor twin |
-| `services/upstream-sim` | seeded, scriptable flaky upstream | reproducible chaos |
-| `infra/java`, `infra/python` | the same infrastructure as two CDK apps from one spec | template parity proven by a diff |
-
-Everything runs **locally**. AWS APIs come from a local emulator, chosen by one setting:
-
-```bash
-cp .env.example .env              # KEYEDGE_AWS_TARGET=floci | aws-emulator
-make emu-up                       # starts the emulator and refuses to continue unless the account is 000000000000
-make emu-smoke                    # one observed check per AWS operation the design relies on
-make emu-up TARGET=aws-emulator   # the second emulator (built from its latest package, telemetry off)
+```mermaid
+flowchart LR
+  client([client]) -->|Bearer key| alb[ALB]
+  subgraph task [ECS task / compose netns]
+    edge[edge sidecar<br/>native image] -->|signed principal| quotes[quotes app]
+  end
+  alb --> edge
+  edge -->|verify, single flight| keys[keys control plane]
+  keys --> ddb[(DynamoDB)]
+  keys --> sm[(Secrets Manager)]
+  quotes --> sim[upstream-sim<br/>pricing / stock / fx]
+  subgraph emu [local AWS: Floci or AWS Emulator]
+    ddb
+    sm
+    ssm[(SSM contract)]
+  end
 ```
 
-No phase deploys to a real AWS account.
+## Run it
+
+Requirements: Docker, a JDK ≥ 17 to start Gradle (it provisions Java 25 through toolchains), Node 22 (CDK
+CLI), uv. Nothing is installed system-wide.
+
+```bash
+cp .env.example .env                  # KEYEDGE_AWS_TARGET=floci (default) or aws-emulator
+make cdk-synth && make images         # templates and JVM images
+make up && make demo                  # emulator, CDK stacks, services; token -> key -> signed quote -> revoke
+make up TARGET=aws-emulator           # the same on the second emulator (latest package, telemetry off)
+make help                             # every target
+```
+
+## What this demonstrates
+
+| Claim | Evidence |
+|---|---|
+| A naive token bucket over-admits under a race; the CAS limiters never do | jcstress: 10.6 % of ~200 M samples vs 0 forbidden outcomes ([naive-bucket-race](docs/lab-notebook.md#naive-bucket-race-phase-003), [results](results/labs/naive-bucket-race.json)) |
+| A GCRA decision is cheap and on par with Bucket4j | JMH: 33 ns/op uncontended, 0.81× Bucket4j ([results](results/labs/limiter-cost.json)) |
+| 500 concurrent misses for one key cost one verify call | single flight: 1 call reached keys ([results](results/labs/single-flight.json)) |
+| Refresh-ahead removes the expiry stall | p99 0.28 ms vs 288 ms expire-only ([results](results/labs/refresh-ahead.json)) |
+| The control plane can go down without taking traffic with it | fail-static: warm keys 100 % admitted, cold keys 0 %, revoked 0 ([results](results/labs/control-plane-outage.json)) |
+| A breaker turns a slow dependency into a fast answer | p99 after the first second 0.9 ms vs 311 ms without ([results](results/labs/breaker-vs-none.json)) |
+| Adaptive concurrency keeps goodput through a brown-out | 26× the goodput of a fixed limit ([results](results/labs/adaptive-vs-fixed.json)) |
+| `ThreadLocal` context leaks across pooled threads; `ScopedValue` cannot | 6 of 20 anonymous requests saw another tenant, 0 with ScopedValue ([results](results/labs/scoped-vs-threadlocal.json)) |
+| Native sidecar vs JVM | start 322 ms vs 3 855 ms, RSS 88 vs 166 MiB, p99 51 vs 146 ms at 200 req/s ([results](results/labs/native-vs-jvm.json), [chart](docs/media/native-vs-jvm.svg)) |
+| Java and Python CDK apps describe the same infrastructure | 18 of 18 templates byte-identical ([parity](docs/infra.md), [results](results/parity/cdk-templates.json)) |
+| The same templates run as a real task on an emulator | smoke through the task and the emulated ALB; the gaps are rows in [parity.md](docs/parity.md) |
+
+Refuted results are kept: three bench hypotheses failed, each for a reason found in the data (quotes'
+bulkheads, the edge's own adaptive limiter, CPU headroom), and the notebook says which.
 
 ## Measured results
 
@@ -45,15 +76,50 @@ No phase deploys to a real AWS account.
 ![native vs JVM](docs/media/native-vs-jvm.svg)
 <!-- bench:end -->
 
-## Build
+![control-plane outage](docs/media/control-plane-outage.svg)
 
-Requirements: Docker, a JDK ≥ 17 to start Gradle (Gradle then provisions **Java 25** for its daemon and
-the build through toolchains; nothing is installed system-wide), Node 22 (CDK CLI), uv (Python CDK, scripts).
+## Two emulators, one contract
+
+The same contract suite runs on Floci and on AWS Emulator in CI; where they differ from each other or from AWS's
+documented behaviour, [docs/parity.md](docs/parity.md) has a row (TTL timing, `DependsOn HEALTHY`, shared
+`localhost` in a task, an ECS that runs no containers, ALB deregistration timing). Claims that need a real account
+(IAM and KMS policies, Fargate timings, real ALB draining) are labelled untested.
+
+## Design notes
+
+- **Layering everywhere:** domain (pure, sealed types) → app (use cases over ports) → adapters → wiring; ArchUnit
+  enforces it per module. [ADR index](docs/adr/).
+- **Key format and storage:** prefix + checksum (rejects typos without a lookup), HMAC-SHA256 with a versioned
+  pepper, rotation with an overlap window ([ADR 0003](docs/adr/0003-hashing-api-keys.md)).
+- **Bounded revocation:** a revoked key keeps working at a sidecar until its cached verdict expires (60 s), and
+  while the control plane is down up to TTL + stale window (5 min) under fail-static
+  ([ADR 0009](docs/adr/0009-edge-admission.md), [ADR 0010](docs/adr/0010-fail-static-control-plane-policy.md)).
+- **Sidecar → app:** a signed principal header, never "it came from localhost"; on ECS the app is found through the
+  task metadata ([ADR 0018](docs/adr/0018-sidecar-finds-the-app-through-task-metadata.md)).
+- More: [architecture](docs/architecture.md), [threat model](docs/threat-model.md), [runbook](docs/runbook.md),
+  [virtual threads vs Reactor](docs/virtual-threads-vs-reactor.md), [infrastructure](docs/infra.md),
+  [lab notebook](docs/lab-notebook.md), [interview notes](docs/interview-notes.md), [blog drafts](docs/blog/).
+
+## What I would do differently with a real account
+
+- Test IAM and KMS key policies for real (the emulators accept any request signed with their own keys).
+- Measure ALB connection draining and task start order on Fargate; the emulators cannot show either.
+- Size the edge from Fargate CPU numbers, not cgroup limits, and size the quotes bulkheads from measured latency
+  under load.
+- Use Spot capacity for the stateless tasks and test interruption handling.
+
+## Build and quality
 
 ```bash
 make lint test        # Spotless, Checkstyle, Error Prone + NullAway, ArchUnit, forbidden terms, fast tests
-make help             # every target
+make test-aws TARGET=floci ; make test-aws TARGET=aws-emulator   # the AWS contract suite
+make cdk-test-all && make cdk-parity                             # both CDK apps, identical templates
+make report && make docs-check                                   # generated docs match the results
+make release-check                                               # the pre-tag checklist
 ```
+
+CI ([.github/workflows](.github/workflows)) runs on pull requests, version tags and manual dispatch, never on a push
+to a branch; actions are pinned by SHA; nothing is granted by default.
 
 ## License
 

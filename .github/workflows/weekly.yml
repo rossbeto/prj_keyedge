@@ -1,0 +1,49 @@
+# Slow suites on a schedule (Phase 016): mutation tests (PIT thresholds) and the full jcstress run.
+name: weekly
+on:
+  schedule:
+    - cron: "41 2 * * 6"
+  workflow_dispatch:
+permissions: {} # nothing by default; each job asks for what it needs
+concurrency:
+  group: weekly-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  pit:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ["libs:keyformat", "libs:ratelimit", "libs:problem", "libs:awstarget", "libs:fanout", "services:keys", "services:edge", "services:quotes"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: Mutation tests
+        env:
+          MODULE: ${{ matrix.module }}
+        run: make pit M="$MODULE"
+  jcstress:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - name: jcstress, full mode
+        run: make jcstress M=libs:ratelimit MODE=default

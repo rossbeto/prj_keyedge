@@ -259,7 +259,7 @@ image-size: ## Fail if an image exceeds its budget (MB; native budgets apply whe
 	@scripts/image_size.sh --if-present keyedge/edge:native 59 keyedge/quotes:native 56 keyedge/keys:native 60
 
 ## ---- Native images and supply chain (Phase 010) -------------------------------------------
-.PHONY: native sbom scan sign verify release-check
+.PHONY: native sbom scan sign verify supply-check release-check changelog workflows-check docs-policy
 NATIVE_PREVIEW := $(if $(filter quotes,$(S)),-Pkeyedge.native.preview=true)
 native: ## Native image in the GraalVM builder container: make native S=edge|quotes|keys (one at a time, ~5 min)
 	$(GRADLE) --no-configuration-cache :services:$(S):dockerBuildNative $(NATIVE_PREVIEW)
@@ -278,7 +278,23 @@ sign: ## cosign sign SUPPLY_IMAGES by digest in the local registry 127.0.0.1:155
 verify: ## cosign verify SUPPLY_IMAGES
 	scripts/supply_chain.sh verify $(SUPPLY_IMAGES)
 
-release-check: image-size scan sign verify ## Budgets, scan, sign, verify
+supply-check: image-size scan sign verify ## Budgets, scan, sign, verify (local registry + local cosign key)
+
+release-check: ## Pre-tag checklist, PASS/FAIL per check: make release-check [TAG=v1.0.0] [RELEASE_ALLOW_DIRTY=1]
+	@RELEASE_ALLOW_DIRTY=$(or $(RELEASE_ALLOW_DIRTY),0) scripts/release_check.sh $(TAG)
+
+changelog: ## The CHANGELOG.md section of a tag (release notes): make changelog TAG=v1.0.0
+	@v=$(TAG); v=$${v#v}; awk -v v="$$v" '$$0 ~ "^## \\[?"v"\\]?" {p=1; next} /^## / {p=0} p' CHANGELOG.md
+
+ACTIONLINT := rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+workflows-check: ## Workflow policy (no branch push, SHA pins, least privilege) + actionlint 1.7.12 + zizmor
+	uv run -q --with pytest --with pyyaml pytest -q scripts/tests/test_workflow_policy.py
+	docker run --rm -v "$$PWD:/repo:ro" -w /repo $(ACTIONLINT) -color
+	uvx -q zizmor==1.33.1 --offline .github/workflows
+
+docs-policy: ## Portfolio card contract, relative links, README numbers linked to evidence; release_check self-test
+	uv run -q --with pytest pytest -q scripts/tests/test_docs_policy.py
+	scripts/tests/test_release_check.sh
 
 up: ## Emulator + seed + services (TARGET=floci|aws-emulator, FLAVOR=jvm|native); ports 127.0.0.1:15xxx
 	scripts/emu.sh up $(TARGET)

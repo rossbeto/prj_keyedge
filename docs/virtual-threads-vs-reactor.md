@@ -102,4 +102,11 @@ Virtual threads by default, with this Reactor twin kept for comparison:
   calls run to completion.
 - [`results/labs/retry-only-idempotent.json`](../results/labs/retry-only-idempotent.json),
   [`results/labs/token-stampede.json`](../results/labs/token-stampede.json): retries and the shared token.
-- Load curves and CPU per request at scale: `TODO(phase015)` — the Phase 015 bench adds them here.
+- Load curves and CPU per request at scale (Phase 015,
+  [`bench-result.json`](../results/bench/20261123-165813-vt-vs-reactor/bench-result.json),
+  [notebook](lab-notebook.md#vt-vs-reactor-phase-015)): offered 100–1 200 req/s straight to quotes, 3 repetitions.
+  The ceiling was quotes' own bulkheads, not the CPU: the structured adapter failed the error SLO from 400 req/s,
+  the futures adapter from 600, the Reactor twin held 600 at ≤ 0.2 % errors. CPU per request was within ~15 % at
+  400 req/s and above (Reactor lowest). Prediction (CPU-bound tie near 1 600 req/s): refuted.
+
+![errors vs offered load](media/vt-vs-reactor.svg)

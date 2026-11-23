@@ -1,0 +1,40 @@
+# Supply-chain and workflow security (Phase 016): secrets, workflow injection (zizmor), workflow syntax
+# (actionlint), new dependencies on PRs. Weekly too, so a new advisory shows up without a PR.
+name: security
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+permissions: {} # nothing by default; each job asks for what it needs
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - name: Secret scan (every commit)
+        run: scripts/gitleaks.sh
+      - name: Workflow policy, actionlint, zizmor
+        run: make workflows-check
+      - name: Docs policy (portfolio card, links, numbers linked to results)
+        run: make docs-policy
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/dependency-review-action@bbc44d14a204704ccc493733616cd1e93a0321ec # v5.0.1
+        with:
+          fail-on-severity: high

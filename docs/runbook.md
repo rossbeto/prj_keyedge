@@ -124,3 +124,24 @@ Floci is the *first container's* VPC address, not the app's. Check: `KEYEDGE_APP
 `docker run --rm --network keyedge_default alpine getent hosts <first 12 chars of the quotes DockerId>` resolves.
 Task containers left behind after a failed run: `make ecs-down` (never remove containers by name pattern; other
 projects share the daemon).
+
+## 8. Rotate the pepper
+
+The pepper document in Secrets Manager (`keyedge/peppers`) holds every live version and which one is current:
+`{"current": 2, "peppers": {"1": "<base64>", "2": "<base64>"}}`. Keys hashed with an older version keep verifying;
+new keys use the current one (measured: [pepper-rotation](lab-notebook.md#pepper-rotation-phase-005)).
+
+1. Add a version and make it current: decrypt the SOPS document, add `"3"` (32 random bytes, base64), set
+   `current` to 3, re-encrypt, `make secrets-sync TARGET=…` (or `put-secret-value` on the emulator).
+2. keys reads the document on refresh; new keys now carry pepper version 3.
+3. Retire a version only when no stored hash uses it: rotating the affected keys first (`POST
+   /v1/keys/{id}/rotate`), then removing the version. Removing it early turns those keys into "unknown" at once.
+
+## 9. Revoke a key fast
+
+`POST /v1/keys/{id}/revoke` is immediate at the control plane; each sidecar keeps its cached verdict until the TTL
+hint (60 s), and during a control-plane outage up to TTL + stale window (5 min) (threat model row 6, ADR 0009).
+To cut that short for one incident: restart the edge tasks of the affected service (the cache is in memory), or
+lower keys' TTL hint (`KEYEDGE_KEYS_VERIFY_TTL`, sent with every verdict) for the duration; it applies to verdicts
+fetched after the change. Check with `make demo`-style calls through the edge: the
+revoked key must be rejected once its verdict has expired.

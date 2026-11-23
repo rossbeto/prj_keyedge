@@ -5,19 +5,22 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
-permissions:
-  contents: read
+permissions: {} # nothing by default; each job asks for what it needs
 concurrency:
   group: native-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   native:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
     timeout-minutes: 60
     strategy:
       max-parallel: 1 # one native build at a time (memory)
       matrix:
         service: [edge, quotes, keys]
+    env:
+      SERVICE: ${{ matrix.service }} # used through the environment, never expanded into scripts
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,18 +30,20 @@ jobs:
           distribution: temurin
           java-version: "25"
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-disabled: true # publishing: never restore a cache another run wrote
       - name: Native image (GraalVM builder container, pinned by digest)
-        run: make native S=${{ matrix.service }}
+        run: make native S="$SERVICE"
       - name: JVM image (for the comparison and the SBOM)
-        run: ./gradlew :services:${{ matrix.service }}:installDist && docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE=${{ matrix.service }} -t keyedge/${{ matrix.service }}:dev .
+        run: ./gradlew ":services:$SERVICE:installDist" && docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE="$SERVICE" -t "keyedge/$SERVICE:dev" .
       - name: Size budgets (this service; budgets as in `make image-size`)
         run: |
-          make image-size 2>/dev/null | grep "keyedge/${{ matrix.service }}:" | tee budgets.txt
+          make image-size 2>/dev/null | grep "keyedge/$SERVICE:" | tee budgets.txt
           ! grep -q OVER budgets.txt
       - name: SBOM (classpath + image)
-        run: make sbom SUPPLY_IMAGES="keyedge/${{ matrix.service }}:dev keyedge/${{ matrix.service }}:native"
+        run: make sbom SUPPLY_IMAGES="keyedge/$SERVICE:dev keyedge/$SERVICE:native"
       - name: Trivy (fail on CRITICAL)
-        run: make scan SUPPLY_IMAGES="keyedge/${{ matrix.service }}:dev keyedge/${{ matrix.service }}:native"
+        run: make scan SUPPLY_IMAGES="keyedge/$SERVICE:dev keyedge/$SERVICE:native"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
