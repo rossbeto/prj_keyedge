@@ -18,6 +18,16 @@ public final class HealthProbe {
     System.exit(check(args.length > 0 ? args[0] : "http://127.0.0.1:8080/health") ? 0 : 1);
   }
 
+  /**
+   * For native images (no JVM to run {@link #main}): {@code <binary> --health-check <url>} probes
+   * and exits; any other arguments return normally so the application starts.
+   */
+  public static void exitIfRequested(String[] args) {
+    if (args.length == 2 && args[0].equals("--health-check")) {
+      System.exit(check(args[1]) ? 0 : 1);
+    }
+  }
+
   static boolean check(String url) {
     try (HttpClient client =
         HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build()) {

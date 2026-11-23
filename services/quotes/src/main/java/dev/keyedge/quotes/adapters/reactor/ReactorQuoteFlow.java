@@ -94,10 +94,17 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
   public CompletionStage<QuoteOutcome> quote(QuoteRequest q, RequestContext ctx) {
     String sku = q.sku().value();
     Mono<Upstream.Price> price =
-        guarded(pricing(sku, ctx), protections.pricing(), true, ctx, endpoints.pricingTimeout())
+        guarded(
+                "pricing",
+                pricing(sku, ctx),
+                protections.pricing(),
+                true,
+                ctx,
+                endpoints.pricingTimeout())
             .map(Upstream::price);
     Mono<Upstream.Stock> stock =
         guarded(
+                "stock",
                 get("stock", endpoints.stock().resolve("/stock/" + sku), Map.of(), ctx),
                 protections.stock(),
                 true,
@@ -106,6 +113,7 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
             .map(Upstream::stock);
     Mono<CallResult<Upstream.FxRate>> fx =
         guarded(
+                "fx",
                 get(
                     "fx",
                     endpoints.fx().resolve("/fx/" + base + "/" + q.currency().value()),
@@ -162,7 +170,12 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
   }
 
   private <T> Mono<T> guarded(
-      Mono<T> attempt, Protection p, boolean idempotent, RequestContext ctx, Duration timeout) {
+      String upstream,
+      Mono<T> attempt,
+      Protection p,
+      boolean idempotent,
+      RequestContext ctx,
+      Duration timeout) {
     var previous = new AtomicReference<>(p.policy().base());
     Retry retry =
         Retry.from(signals ->
@@ -182,15 +195,20 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
               previous.set(wait);
               return Mono.delay(wait);
             }));
+    // per attempt, like the blocking path: each attempt gets min(timeout, what is left); the
+    // request deadline bounds the retries
+    Mono<T> timed =
+        Mono.defer(() -> attempt.timeout(ctx.deadline().cap(timeout, nanos)))
+            .onErrorMap(TimeoutException.class, e -> CallException.timeout(upstream));
     return Mono.defer(
             () -> {
               p.budget().onCall();
-              return attempt
+              return timed
                   .transformDeferred(CircuitBreakerOperator.of(p.breaker()))
                   .retryWhen(retry);
             })
         .transformDeferred(BulkheadOperator.of(p.bulkhead()))
-        .timeout(ctx.deadline().cap(timeout, nanos));
+        .timeout(ctx.deadline().remaining(nanos));
   }
 
   private Mono<Map<String, Object>> get(

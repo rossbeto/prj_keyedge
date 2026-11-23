@@ -151,6 +151,9 @@ through each limiter from `libs/ratelimit`; goodput over the 8 s brown-out.
 goodput 27/s fixed (p99 774 ms: 200 in flight queue behind 16 workers, Little's law) vs 239/s gradient (p99
 187 ms) and 268/s AIMD (p99 468 ms); ratio gradient/fixed 8.9. AIMD reached more goodput but ran close to the
 SLO; gradient kept latency low. The edge defaults to gradient.
+**Re-run (Phase 010)** with a fourth row, gradient with RTT tolerance 2.0 (the fix from `native-vs-jvm`); the
+JSON holds this run: fixed 0/s (p99 807 ms), gradient 225/s (p99 147 ms), AIMD 266/s (p99 464 ms), tolerant
+gradient 250/s (p99 340 ms) — still within the SLO, so the tolerance costs no brown-out protection here.
 **Interview line.** "A fixed limit of 200 looked generous until capacity fell: Little's law turned it into a
 750 ms queue and almost nothing met the SLO. The adaptive limit shrank to what the app could serve."
 
@@ -194,3 +197,22 @@ refresh, still valid) and again after the token has expired.
 (server-side count). Before that, **jcstress found a double fetch** in the first implementation: a caller that
 saw "no token" just before the first fetch completed started a second one. Fixed by reusing a just-completed
 fetch whose token is still current.
+
+## native-vs-jvm (Phase 010)
+
+**Hypothesis.** The native edge reaches readiness in < 100 ms with < 1/3 of the JVM edge's RSS at idle and
+under 200 req/s.
+**Method.** `make lab E=native-vs-jvm` (`lab/native_vs_jvm.py`): the compose stack on Floci with the JVM edge, then
+the native one; 5 cold starts each (`docker start` → readiness 200, polled every 10 ms; also Micronaut's own
+"Startup completed" time); VmRSS of the edge process; k6 200 req/s for 30 s over 6 keys after a 20 s warm-up.
+**Result** ([results/labs/native-vs-jvm.json](../results/labs/native-vs-jvm.json)): **refuted as stated** —
+native: 322 ms to ready (median) of which Micronaut itself takes 21–26 ms, the rest is `docker start` and the
+readiness probe path; JVM: 3.9 s (Micronaut 1.0–1.6 s). RSS 88 vs 166 MiB idle (53 %), 131 vs 213 MiB after load
+(62 %): about half, not a third. Under load the native edge used 12.8 vs 26.5 CPU-seconds, p99 51 vs 146 ms, and
+no errors, while the still-warming JVM edge shed 3.6 % with its adaptive limit.
+**Found on the way.** The first load runs shed 7–16 % with `503 overloaded` on *both* flavours: the gradient
+limiter treated a fan-out's normal latency spread (and the warm-up of a restarted quotes) as congestion and fell
+to its minimum. It had no RTT tolerance (Netflix Gradient2 uses 2.0); added (`gradient-tolerance` 2.0, regression
+test), and `adaptive-vs-fixed` re-run: tolerant gradient keeps the brown-out benefit (250 goodput/s, p99 340 ms).
+**Interview line.** "Native won 10× on start-up and halved memory and CPU — but my '< 100 ms' was measured from
+`docker start`, where the container runtime alone costs ~300 ms. Say which clock you mean."

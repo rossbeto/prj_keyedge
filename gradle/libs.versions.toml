@@ -1,5 +1,6 @@
 # Every version in the build lives here (D-03). Renovate groups bumps; CDK versions must match infra/python/uv.lock (D-47).
 [versions]
+cyclonedx = "3.6.1"
 java = "25"
 micronaut = "5.2.7"
 micronautGradle = "5.0.2"
@@ -58,6 +59,7 @@ plugin-errorprone = { module = "net.ltgt.gradle:gradle-errorprone-plugin", versi
 plugin-pitest = { module = "info.solidsoft.gradle.pitest:gradle-pitest-plugin", version.ref = "pitestPlugin" }
 plugin-jmh = { module = "me.champeau.jmh:jmh-gradle-plugin", version.ref = "jmhPlugin" }
 plugin-micronaut = { module = "io.micronaut.gradle:micronaut-gradle-plugin", version.ref = "micronautGradle" }
+plugin-cyclonedx = { module = "org.cyclonedx:cyclonedx-gradle-plugin", version.ref = "cyclonedx" }
 
 [plugins]
 foojay = { id = "org.gradle.toolchains.foojay-resolver-convention", version = "1.0.0" }

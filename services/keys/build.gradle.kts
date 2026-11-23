@@ -1,6 +1,6 @@
 // The control plane: tenants' API keys (issue, rotate, revoke, list, usage) and the sidecars' verify (Phase 005).
 plugins {
-    id("keyedge.micronaut-service")
+    id("keyedge.native")
     id("keyedge.pit")
 }
 application { mainClass = "dev.keyedge.keys.Application" }
@@ -18,7 +18,7 @@ keyedgeCoverage {
     excludes = listOf("**/adapters/**", "**/wiring/**", "**/Application*")
 }
 dependencies {
-    runtimeOnly(project(":libs:ops"))
+    implementation(project(":libs:ops"))
     implementation(project(":libs:keyformat"))
     implementation(project(":libs:problem-micronaut"))
     implementation(project(":libs:awstarget"))

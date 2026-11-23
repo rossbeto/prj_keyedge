@@ -168,6 +168,8 @@ class AdaptiveLimitExperiments {
   void adaptiveVsFixed() throws Exception {
     var fixed = brownout("fixed-200", new FixedLimiter(200));
     var gradient = brownout("gradient", new GradientLimiter(50, 10, 500, 100, 0.2));
+    var gradientTolerant =
+        brownout("gradient-tolerance-2", new GradientLimiter(50, 10, 500, 100, 0.2, 2.0));
     var aimd =
         brownout("aimd", new AimdLimiter(50, 10, 500, Duration.ofMillis(250).toNanos(), 0.9));
     double ratio =
@@ -187,6 +189,7 @@ class AdaptiveLimitExperiments {
     result.put("fixed", fixed);
     result.put("gradient", gradient);
     result.put("aimd", aimd);
+    result.put("gradient_tolerance_2", gradientTolerant);
     result.put("goodput_ratio_gradient_over_fixed", Math.round(ratio * 100) / 100.0);
     result.put("verdict", ratio >= 1.2 ? "confirmed" : "refuted");
     write("adaptive-vs-fixed", result);

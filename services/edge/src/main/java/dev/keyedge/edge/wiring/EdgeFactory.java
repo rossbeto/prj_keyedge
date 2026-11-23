@@ -121,7 +121,13 @@ public class EdgeFactory {
       case AIMD ->
           new AimdLimiter(c.initial(), c.min(), c.max(), c.aimdSlow().toNanos(), c.aimdBackoff());
       case GRADIENT ->
-          new GradientLimiter(c.initial(), c.min(), c.max(), c.gradientWindow(), c.smoothing());
+          new GradientLimiter(
+              c.initial(),
+              c.min(),
+              c.max(),
+              c.gradientWindow(),
+              c.smoothing(),
+              c.gradientTolerance());
     };
   }
 

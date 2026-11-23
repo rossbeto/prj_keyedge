@@ -1,0 +1,21 @@
+# Native images instead of JVM ones (Phase 010): make up FLAVOR=native [NATIVE=edge,quotes,keys]
+# Applied on top of compose.yaml. A native binary has no `java` for the JVM probe: it answers
+# `--health-check <url>` itself (dev.keyedge.ops.HealthProbe.exitIfRequested).
+services:
+  edge:
+    image: keyedge/edge:native
+    command: []
+    healthcheck:
+      test: ["CMD", "/app/application", "--health-check", "http://127.0.0.1:15080/health/readiness"]
+  quotes:
+    image: keyedge/quotes:native
+    command: []
+    environment:
+      JDK_JAVA_OPTIONS: "" # preview was decided at native build time (-Pkeyedge.native.preview=true)
+    healthcheck:
+      test: ["CMD", "/app/application", "--health-check", "http://127.0.0.1:15081/health"]
+  keys:
+    image: keyedge/keys:native
+    command: []
+    healthcheck:
+      test: ["CMD", "/app/application", "--health-check", "http://127.0.0.1:15100/health"]

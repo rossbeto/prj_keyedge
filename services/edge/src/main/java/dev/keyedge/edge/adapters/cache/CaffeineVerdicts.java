@@ -146,26 +146,7 @@ public final class CaffeineVerdicts implements Verdicts {
 
   /** Past expiry, inside the stale window: one shared reload; on failure, maybe serve stale. */
   private Answer revalidate(Key key, Timed old) {
-    CompletableFuture<Timed> reload =
-        revalidating.computeIfAbsent(
-            key,
-            k -> {
-              CompletableFuture<Timed> f =
-                  CompletableFuture.supplyAsync(
-                      () -> {
-                        loads.increment();
-                        return timed(client.verify(k.keyId(), k.secret()));
-                      },
-                      executor);
-              var unused =
-                  f.whenComplete((fresh, error) -> {
-                    if (fresh != null) {
-                      cache.put(k, CompletableFuture.completedFuture(fresh));
-                    }
-                    revalidating.remove(k, f);
-                  });
-              return f;
-            });
+    CompletableFuture<Timed> reload = sharedReload(key);
     try {
       return new Answer(await(key, reload, false).check(), false);
     } catch (Verdicts.Unavailable e) {
@@ -175,6 +156,42 @@ public final class CaffeineVerdicts implements Verdicts {
         return new Answer(old.check(), true);
       }
       throw e;
+    }
+  }
+
+  /**
+   * One reload per key. A reload that already failed may still be in the map for an instant (its
+   * removal runs after the waiters wake): it is replaced, never reused, or the first caller after
+   * recovery would get one more stale answer. The work starts only after this caller won the slot,
+   * outside any map lock.
+   */
+  private CompletableFuture<Timed> sharedReload(Key key) {
+    while (true) {
+      CompletableFuture<Timed> existing = revalidating.get(key);
+      if (existing != null && !existing.isCompletedExceptionally()) {
+        return existing;
+      }
+      var mine = new CompletableFuture<Timed>();
+      boolean won =
+          existing == null
+              ? revalidating.putIfAbsent(key, mine) == null
+              : revalidating.replace(key, existing, mine);
+      if (!won) {
+        continue;
+      }
+      executor.execute(() -> {
+        try {
+          loads.increment();
+          Timed fresh = timed(client.verify(key.keyId(), key.secret()));
+          cache.put(key, CompletableFuture.completedFuture(fresh));
+          mine.complete(fresh);
+        } catch (RuntimeException e) {
+          mine.completeExceptionally(e);
+        } finally {
+          revalidating.remove(key, mine);
+        }
+      });
+      return mine;
     }
   }
 

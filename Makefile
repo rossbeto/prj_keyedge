@@ -88,7 +88,7 @@ emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 ## ---- Lab notebook (experiments: hypothesis -> measurement -> verdict) --------------------
 .PHONY: lab
 RUN_ID := $(shell date +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null)
-lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed|fanout-models|cancel-on-failure|retry-only-idempotent|token-stampede
+lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed|fanout-models|cancel-on-failure|retry-only-idempotent|token-stampede|native-vs-jvm
 	@case "$(E)" in \
 	  naive-bucket-race) \
 	    $(GRADLE) :libs:ratelimit:jcstress -Pjcstress.mode=$(or $(MODE),quick) -Pjcstress.tests='.*Bucket.*|.*Gcra.*|.*Permit.*' > build/jcstress-naive-bucket-race.log 2>&1 || true; \
@@ -107,6 +107,7 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-fli
 	  cancel-on-failure) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*FanoutExperiments.cancelOnFailure' ;; \
 	  retry-only-idempotent) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.retryOnlyIdempotent' ;; \
 	  token-stampede) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.tokenStampede' ;; \
+	  native-vs-jvm) TARGET=$(TARGET) python3 lab/native_vs_jvm.py ;; \
 	  *) echo "unknown experiment '$(E)'"; exit 2 ;; \
 	esac
 
@@ -125,6 +126,8 @@ run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
 ## ---- Images and the compose stack ---------------------------------------------------------
 SERVICES := issuer keys upstream-sim edge quotes
 COMPOSE := docker compose -f deploy/compose.yaml
+FLAVOR ?= jvm
+STACK := $(COMPOSE)$(if $(filter native,$(FLAVOR)), -f deploy/compose.native.yaml)
 ifeq ($(TARGET),aws-emulator)
 CONTAINER_ENV := KEYEDGE_AWS_TARGET=aws-emulator KEYEDGE_CONTAINER_AWS_ENDPOINT=https://localhost:15297 KEYEDGE_CONTAINER_CONNECT_HOST=aws-emulator KEYEDGE_UID=$(shell id -u) KEYEDGE_GID=$(shell id -g)
 else
@@ -135,16 +138,39 @@ images: ## Build the JVM images (Gradle distribution on the host, then deploy/Do
 	$(GRADLE) $(foreach s,$(SERVICES),:services:$(s):installDist)
 	$(foreach s,$(SERVICES),docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE=$(s) -t keyedge/$(s):dev . &&) true
 
-image-size: ## Fail if a JVM image exceeds its budget (MB)
+image-size: ## Fail if an image exceeds its budget (MB; native budgets apply when the image exists)
 	@scripts/image_size.sh keyedge/issuer:dev 110 keyedge/keys:dev 125 keyedge/upstream-sim:dev 110 keyedge/edge:dev 125 keyedge/quotes:dev 125
+	@scripts/image_size.sh --if-present keyedge/edge:native 47 keyedge/quotes:native 46 keyedge/keys:native 49
 
-up: ## Emulator + seed + services (TARGET=floci|aws-emulator); ports 127.0.0.1:15xxx
+## ---- Native images and supply chain (Phase 010) -------------------------------------------
+.PHONY: native sbom scan sign verify release-check
+NATIVE_PREVIEW := $(if $(filter quotes,$(S)),-Pkeyedge.native.preview=true)
+native: ## Native image in the GraalVM builder container: make native S=edge|quotes|keys (one at a time, ~5 min)
+	$(GRADLE) --no-configuration-cache :services:$(S):dockerBuildNative $(NATIVE_PREVIEW)
+
+SUPPLY_IMAGES ?= keyedge/edge:dev keyedge/edge:native keyedge/quotes:native keyedge/keys:native
+sbom: ## CycloneDX: classpath SBOMs (Gradle) + image SBOMs (syft) for SUPPLY_IMAGES
+	$(GRADLE) $(foreach s,edge quotes keys,:services:$(s):cyclonedxDirectBom)
+	scripts/supply_chain.sh sbom $(SUPPLY_IMAGES)
+
+scan: ## Trivy on SUPPLY_IMAGES: fail on CRITICAL, report HIGH (.trivyignore holds reasons)
+	scripts/supply_chain.sh scan $(SUPPLY_IMAGES)
+
+sign: ## cosign sign SUPPLY_IMAGES by digest in the local registry 127.0.0.1:15500 (local key in ~/.keyedge/cosign)
+	scripts/supply_chain.sh sign $(SUPPLY_IMAGES)
+
+verify: ## cosign verify SUPPLY_IMAGES
+	scripts/supply_chain.sh verify $(SUPPLY_IMAGES)
+
+release-check: image-size scan sign verify ## Budgets, scan, sign, verify
+
+up: ## Emulator + seed + services (TARGET=floci|aws-emulator, FLAVOR=jvm|native); ports 127.0.0.1:15xxx
 	scripts/emu.sh up $(TARGET)
 	$(MAKE) --no-print-directory seed TARGET=$(TARGET)
-	$(CONTAINER_ENV) $(COMPOSE) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy edge quotes
+	$(CONTAINER_ENV) $(STACK) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy edge quotes
 
 stop: ## Stop the services (emulators keep running: make emu-down)
-	$(COMPOSE) stop quotes edge issuer keys upstream-sim toxiproxy
+	$(STACK) stop quotes edge issuer keys upstream-sim toxiproxy
 
 logs: ## Follow logs: make logs S=keys
 	$(COMPOSE) logs -f $(S)

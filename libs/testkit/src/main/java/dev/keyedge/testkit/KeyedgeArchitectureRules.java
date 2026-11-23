@@ -187,6 +187,28 @@ public final class KeyedgeArchitectureRules {
         .allowEmptyShould(true);
   }
 
+  /**
+   * No reflection outside the composition root: native images need every reflective access declared
+   * up front, and Micronaut's compile-time processing makes it unnecessary (Phase 010).
+   */
+  public static ArchRule noReflectionOutsideWiring(String base) {
+    return noClasses()
+        .that()
+        .resideInAPackage(base + "..")
+        .and()
+        .resideOutsideOfPackage(base + ".wiring..")
+        .and()
+        .haveNameNotMatching(
+            ".*\\.\\$.*") // Micronaut's generated $...Definition / $...Introspection
+        .should()
+        .callMethod(Class.class, "forName", String.class)
+        .orShould()
+        .dependOnClassesThat()
+        .resideInAPackage("java.lang.reflect..")
+        .because("native images need reflection declared up front (Phase 010)")
+        .allowEmptyShould(true);
+  }
+
   /** All rules for a service, in one call. */
   public static List<ArchRule> all(String base) {
     return List.of(
@@ -195,7 +217,8 @@ public final class KeyedgeArchitectureRules {
         noClockReadsOutsideWiring(base),
         noUtilsOrHelpers(base),
         adaptersIndependent(base),
-        awsClientsOnlyInWiring(base));
+        awsClientsOnlyInWiring(base),
+        noReflectionOutsideWiring(base));
   }
 
   /** Checks every rule and reports all violations together. */

@@ -123,4 +123,30 @@ class ConcurrencyLimitersTest {
     assertThatThrownBy(() -> new GradientLimiter(1, 1, 2, 5, 0))
         .isInstanceOf(IllegalArgumentException.class);
   }
+
+  /**
+   * Regression (Phase 010 load run): latency spread of 1x..2x the minimum is normal for a fan-out.
+   * Without tolerance the limit collapses to its minimum; with tolerance 2 it holds or grows.
+   */
+  @Test
+  void toleranceKeepsTheLimitUnderNormalLatencySpread() {
+    var strict = new GradientLimiter(50, 10, 500, 100, 0.2);
+    var tolerant = new GradientLimiter(50, 10, 500, 100, 0.2, 2.0);
+    long[] rtts = {10_000_000, 15_000_000, 20_000_000, 12_000_000, 18_000_000};
+    for (int i = 0; i < 500; i++) {
+      for (var l : List.of(strict, tolerant)) {
+        l.tryAcquire().orElseThrow().onSuccess(rtts[i % rtts.length]);
+      }
+    }
+    assertThat(strict.limit()).isLessThan(30);
+    assertThat(tolerant.limit()).isGreaterThanOrEqualTo(50);
+    // real congestion (latency 3x the minimum) still shrinks the tolerant limiter, within the
+    // min-RTT window (100 samples; after that the slower latency becomes the new baseline)
+    for (int i = 0; i < 80; i++) {
+      tolerant.tryAcquire().orElseThrow().onSuccess(30_000_000 + (i % 2) * 5_000_000);
+    }
+    assertThat(tolerant.limit()).isLessThan(50);
+    assertThatThrownBy(() -> new GradientLimiter(5, 1, 10, 5, 0.5, 0.5))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
 }

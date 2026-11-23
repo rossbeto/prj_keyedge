@@ -6,4 +6,5 @@ dependencies {
     implementation(libs.plugin.pitest)
     implementation(libs.plugin.jmh)
     implementation(libs.plugin.micronaut)
+    implementation(libs.plugin.cyclonedx)
 }

@@ -1,0 +1,71 @@
+{
+  "experiment": "native-vs-jvm",
+  "hypothesis": "the native edge reaches readiness in < 100 ms (median of 5 cold starts) with < 1/3 of the JVM edge's RSS at idle and after 200 req/s",
+  "setup": "compose stack on floci; docker start -> readiness 200 polled every 10 ms (includes the Secrets Manager reads at start-up); VmRSS of the edge process; k6 200 req/s for 30 s through the edge over 6 keys after a 20 s warm-up at 100 req/s",
+  "jvm": {
+    "flavor": "jvm",
+    "image_id": "sha256:69fa6c1e0d744dec670e541909cda41370c2efa35ed72774e477558f1eceea1e",
+    "start_to_ready_ms": [
+      4127.4,
+      3854.9,
+      3913.7,
+      2923.0,
+      2908.9
+    ],
+    "start_to_ready_median_ms": 3854.9,
+    "micronaut_startup_logged_ms": [
+      1616,
+      1080,
+      1308,
+      1037,
+      1138
+    ],
+    "rss_mib_idle": 165.8,
+    "p50_ms": 30.77,
+    "p99_ms": 145.77,
+    "requests": 6000,
+    "error_rate": 0.0358,
+    "statuses": {
+      "200": 5785,
+      "503": 215,
+      "503_overloaded": 215
+    },
+    "rss_mib_after_load": 212.6,
+    "cpu_seconds_during_load": 26.52
+  },
+  "native": {
+    "flavor": "native",
+    "image_id": "sha256:e16f8968de1c2be9f5025e2d9dcfc526fdd8e0a01cc4bb88b13475d78ba37dcc",
+    "start_to_ready_ms": [
+      322.2,
+      312.5,
+      301.8,
+      389.8,
+      326.2
+    ],
+    "start_to_ready_median_ms": 322.2,
+    "micronaut_startup_logged_ms": [
+      23,
+      24,
+      21,
+      26,
+      22
+    ],
+    "rss_mib_idle": 88.4,
+    "p50_ms": 28.31,
+    "p99_ms": 51.39,
+    "requests": 6001,
+    "error_rate": 0,
+    "statuses": {
+      "200": 6001
+    },
+    "rss_mib_after_load": 131.4,
+    "cpu_seconds_during_load": 12.84
+  },
+  "verdict": "refuted",
+  "verdict_detail": {
+    "start_under_100ms": false,
+    "rss_under_a_third": false
+  },
+  "recorded_at": "2026-11-23T01:21:11Z"
+}

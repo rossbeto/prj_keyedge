@@ -2,6 +2,7 @@
 plugins {
     id("keyedge.quality")
     id("io.micronaut.application")
+    id("org.cyclonedx.bom") // SBOM of the runtime classpath: ./gradlew :services:<svc>:cyclonedxDirectBom (Phase 010)
 }
 
 micronaut {

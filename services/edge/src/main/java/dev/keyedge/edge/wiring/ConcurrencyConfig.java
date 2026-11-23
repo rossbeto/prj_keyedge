@@ -17,6 +17,7 @@ public record ConcurrencyConfig(
     @Min(1) @Bindable(defaultValue = "10") int min,
     @Min(1) @Bindable(defaultValue = "500") int max,
     @Bindable(defaultValue = "0.2") double smoothing,
+    @Bindable(defaultValue = "2.0") double gradientTolerance,
     @Min(1) @Bindable(defaultValue = "100") int gradientWindow,
     @Bindable(defaultValue = "500ms") Duration aimdSlow,
     @Bindable(defaultValue = "0.9") double aimdBackoff) {

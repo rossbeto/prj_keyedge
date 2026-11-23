@@ -1,0 +1,95 @@
+{
+  "reflection": [
+    {
+      "type": "com.github.benmanes.caffeine.cache.SSMSW",
+      "fields": [
+        {
+          "name": "FACTORY"
+        },
+        {
+          "name": "expiresAfterWriteNanos"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.SSWR",
+      "fields": [
+        {
+          "name": "FACTORY"
+        },
+        {
+          "name": "refreshAfterWriteNanos"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.SSW",
+      "fields": [
+        {
+          "name": "expiresAfterWriteNanos"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.PS",
+      "fields": [
+        {
+          "name": "key"
+        },
+        {
+          "name": "value"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.SSMS",
+      "fields": [
+        {
+          "name": "maximum"
+        },
+        {
+          "name": "weightedSize"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.PSW",
+      "fields": [
+        {
+          "name": "writeTime"
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.PSWMS",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.PSWR",
+      "methods": [
+        {
+          "name": "<init>",
+          "parameterTypes": []
+        }
+      ]
+    },
+    {
+      "type": "com.github.benmanes.caffeine.cache.CacheLoader"
+    },
+    {
+      "type": {
+        "lambda": {
+          "declaringClass": "dev.keyedge.keys.adapters.secrets.SecretJson",
+          "interfaces": [
+            "com.github.benmanes.caffeine.cache.CacheLoader"
+          ]
+        }
+      }
+    }
+  ]
+}

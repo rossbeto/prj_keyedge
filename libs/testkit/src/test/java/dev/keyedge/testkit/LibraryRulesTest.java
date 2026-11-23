@@ -40,7 +40,7 @@ class LibraryRulesTest {
     assertThatCode(() -> KeyedgeArchitectureRules.checkAll("dev.keyedge.nothing.here"))
         .doesNotThrowAnyException();
     assertThat(KeyedgeArchitectureRules.importMain("dev.keyedge.testkit.fixtures")).isEmpty();
-    assertThat(KeyedgeArchitectureRules.all("x")).hasSize(6);
+    assertThat(KeyedgeArchitectureRules.all("x")).hasSize(7);
   }
 
   @Test

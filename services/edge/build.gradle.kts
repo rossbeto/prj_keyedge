@@ -1,6 +1,6 @@
 // The sidecar: authenticate, scope-check and rate-limit every request, then stream it to the app (Phase 007).
 plugins {
-    id("keyedge.micronaut-service")
+    id("keyedge.native")
     id("keyedge.pit")
 }
 application { mainClass = "dev.keyedge.edge.Application" }
@@ -9,7 +9,7 @@ keyedgeCoverage {
     excludes = listOf("**/wiring/**", "**/Application*", "**/adapters/secrets/**")
 }
 dependencies {
-    runtimeOnly(project(":libs:ops"))
+    implementation(project(":libs:ops"))
     implementation(project(":libs:keyformat"))
     implementation(project(":libs:ratelimit"))
     implementation(project(":libs:problem-micronaut"))

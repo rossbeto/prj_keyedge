@@ -3,7 +3,7 @@
 // single-flight token provider. Compiled without preview; RUNS with --enable-preview because it loads
 // :libs:fanout-structured (runtime-only, found through ServiceLoader).
 plugins {
-    id("keyedge.micronaut-service")
+    id("keyedge.native")
     id("keyedge.pit")
     id("keyedge.jcstress")
 }
@@ -13,7 +13,7 @@ application {
 }
 keyedgeCoverage { excludes = listOf("**/wiring/**", "**/Application*") }
 dependencies {
-    runtimeOnly(project(":libs:ops"))
+    implementation(project(":libs:ops"))
     implementation(project(":libs:keyformat"))
     implementation(project(":libs:problem-micronaut"))
     implementation(project(":libs:awstarget"))
