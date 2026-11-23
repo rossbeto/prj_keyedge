@@ -10,6 +10,7 @@ dependencies {
     api("software.amazon.awssdk:regions")
     api("software.amazon.awssdk:auth")
     api("software.amazon.awssdk:apache5-client")
+    api("software.amazon.awssdk:ssm") // ServiceContract (Phase 012)
     testImplementation(project(":libs:testkit"))
     testImplementation("software.amazon.awssdk:sts")
     testImplementation("software.amazon.awssdk:dynamodb")

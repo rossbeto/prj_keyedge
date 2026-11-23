@@ -66,16 +66,31 @@ public class QuotesFactory {
   @Singleton
   PrincipalFilter.PrincipalKey principalKey(
       JsonMapper json,
-      @Value("${keyedge.quotes.principal-secret:keyedge/principal}") String secretId) {
+      @Value("${keyedge.quotes.principal-secret:keyedge/principal}") String configured,
+      @Value("${keyedge.contract.path:}") String contractPath) {
+    String secretId = configured;
+    if (!contractPath
+        .isBlank()) { // the name from the SSM contract written by the CDK stacks (D-34)
+      try (var ssm =
+          AwsTargetConfigurer.configure(
+                  software.amazon.awssdk.services.ssm.SsmClient.builder(),
+                  AwsTargets.fromEnvironment())
+              .build()) {
+        secretId =
+            dev.keyedge.awstarget.ServiceContract.load(ssm, contractPath)
+                .name(dev.keyedge.awstarget.ServiceContract.PRINCIPAL_SECRET, configured);
+      }
+    }
+    String id = secretId;
     try (var secrets =
         AwsTargetConfigurer.configure(SecretsManagerClient.builder(), AwsTargets.fromEnvironment())
             .build()) {
       Map<String, Object> doc =
           json.readValue(
-              secrets.getSecretValue(b -> b.secretId(secretId)).secretString(),
+              secrets.getSecretValue(b -> b.secretId(id)).secretString(),
               Argument.mapOf(String.class, Object.class));
       if (doc == null || !(doc.get("key") instanceof String b64)) {
-        throw new IllegalStateException("secret " + secretId + " has no 'key'");
+        throw new IllegalStateException("secret " + id + " has no 'key'");
       }
       return new PrincipalFilter.PrincipalKey(Base64.getDecoder().decode(b64));
     } catch (IOException e) {

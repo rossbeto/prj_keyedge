@@ -1,0 +1,94 @@
+# The single source for every name, size, delay, weight, SSM key and cdk-nag suppression reason used by the
+# CDK apps (D-45): infra/java reads it, infra/python (Phase 013) reads the same file, so the two can only
+# differ in code, and the template diff proves they do not. Validated against infra-spec.schema.json.
+version: 1
+envs:
+  local:
+    account: "000000000000"      # both emulators run in this account
+    region: us-east-1
+  prodlike:
+    account: "111111111111"      # placeholder: synth/test only, never deployed from here
+    region: eu-west-1
+names:
+  table: keyedge-keys
+  secrets:
+    peppers: keyedge/peppers
+    callers: keyedge/callers
+    principal: keyedge/principal
+  ssmRoot: /keyedge              # parameters live under /keyedge/<env>/
+  sopsKeyAlias: alias/keyedge-sops
+  cluster: keyedge
+  namespace: keyedge.local
+  alarmTopics: [critical, high, medium]
+table:
+  partitionKey: PK
+  sortKey: SK
+  gsi1: { name: GSI1, partitionKey: GSI1PK, sortKey: GSI1SK }
+  ttlAttribute: ttl
+secrets:
+  # generated in local mode only (prodlike values come from the SOPS sync); 44 base64-alphabet chars = 33 bytes
+  length: 44
+  generated:
+    peppers: { template: '{"current":1}', key: "1" }
+    callers: { template: '{}', key: edge-quotes }
+    principal: { template: '{}', key: key }
+contract:                        # SSM parameter keys the services read (D-34)
+  tableName: table-name
+  pepperSecret: pepper-secret-name
+  callerSecret: caller-secret-name
+  principalSecret: principal-secret-name
+  verifyUrl: verify-url
+  sopsKmsArn: sops-kms-arn
+service:
+  verifyUrl: http://keys:15100
+  edgePort: 15080
+  appPort: 15081
+  keysPort: 15100
+  cpu: 512
+  memoryMiB: 1024
+  edgeStopTimeoutSeconds: 30
+  appStopTimeoutSeconds: 20
+  user: "10001"
+  desiredCount: { local: 1, prodlike: 2 }
+cluster:
+  vpcCidr: 10.40.0.0/16          # literal, so security-group rules can name it (cdk-nag cannot read tokens)
+  maxAzs: 2
+  natGateways: { local: 0, prodlike: 1 }
+  capacity:
+    fargate: { base: 1, weight: 1 }
+    fargateSpot: { base: 0, weight: 4 }
+loadBalancer:
+  deregistrationDelaySeconds: { local: 5, prodlike: 30 }
+  healthCheckPath: /health/readiness
+  listenerPort: { local: 80, prodlike: 443 }
+alarms:
+  edge5xxPercent: 5
+  verifyStaleServedPerMinute: 1
+  evaluationPeriods: 3
+ci:
+  githubRepo: "<you>/keyedge"   # replaced by the user before a real deploy (USER-ACTIONS)
+  oidcThumbprint: "6938fd4d98bab03faadb97b34396831e3780aea1"
+nag:
+  # every suppression with the reason shown in review; keys are cdk-nag rule ids
+  local:
+    AwsSolutions-VPC7: "local mode: no VPC flow logs (emulators, no traffic worth auditing)"
+    AwsSolutions-ELB2: "local mode: ALB access logs off (no log bucket in the emulators)"
+    AwsSolutions-ECS4: "local mode: Container Insights off (emulated cluster)"
+    AwsSolutions-SMG4: "local mode: secrets are rotated by the pepper procedure, not Secrets Manager rotation"
+    AwsSolutions-IAM5: "task role may write usage items under the keys table only; wildcard covers GSI ARNs"
+    AwsSolutions-DDB3: "local mode: point-in-time recovery off (data is disposable)"
+    AwsSolutions-ELB1: "not a classic load balancer"
+    AwsSolutions-ECS2: "container environment holds names only (contract path, AWS target); secrets are read via the task role"
+  prodlike:
+    AwsSolutions-EC23: "the internet-facing ALB accepts 443 and 80 (redirect) from anywhere: that is its job"
+    AwsSolutions-S1: "the ALB access-log bucket does not log its own access (no log of the log)"
+    AwsSolutions-SMG4: "pepper rotation is a two-step procedure (docs/adr/0003), not a Lambda rotation"
+    AwsSolutions-IAM5: "task role may write usage items under the keys table only; wildcard covers GSI ARNs"
+    AwsSolutions-ELB1: "not a classic load balancer"
+    AwsSolutions-ECS2: "container environment holds names only (contract path, AWS target); secrets are read via the task role"
+images:                          # referenced by URI, never built by CDK (no assets: D-42)
+  edge: keyedge/edge:native
+  quotes: keyedge/quotes:native
+  keys: keyedge/keys:native
+certificate:
+  prodlikeArn: "arn:aws:acm:eu-west-1:111111111111:certificate/00000000-0000-0000-0000-000000000000"

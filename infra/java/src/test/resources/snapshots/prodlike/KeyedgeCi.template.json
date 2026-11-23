@@ -1,0 +1,43 @@
+Description: 'keyedge prodlike: CI identity'
+Parameters:
+  BootstrapVersion: {Type: 'AWS::SSM::Parameter::Value<String>', Default: /cdk-bootstrap/hnb659fds/version,
+    Description: 'Version of the CDK Bootstrap resources in this environment, automatically
+      retrieved from SSM Parameter Store. [cdk:skip]'}
+Resources:
+  GithubProviderFA799421:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      ClientIdList: [sts.amazonaws.com]
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+      Url: https://token.actions.githubusercontent.com
+  GithubRole1AFE56DD:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRoleWithWebIdentity
+          Condition:
+            StringEquals: {'token.actions.githubusercontent.com:aud': sts.amazonaws.com}
+            StringLike: {'token.actions.githubusercontent.com:sub': 'repo:<you>/keyedge:ref:refs/tags/v*'}
+          Effect: Allow
+          Principal:
+            Federated:
+              Fn::GetAtt: [GithubProviderFA799421, Arn]
+        Version: '2012-10-17'
+      Description: GitHub Actions for <you>/keyedge (tags only)
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Contains:
+          - ['1', '2', '3', '4', '5']
+          - {Ref: BootstrapVersion}
+      AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap'
+        with a recent version of the CDK CLI.

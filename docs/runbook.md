@@ -97,3 +97,20 @@ make jfr S=edge|quotes|keys D=60s               # JFR (JVM images; native: see A
 make chaos S=keys-down | keys-slow | keys-flaky; make chaos-reset
 docker logs keyedge-quotes-1 | jq -c 'select(.trace_id=="<id from Jaeger>")'   # logs of one trace
 ```
+
+---
+
+## 5. "CREATE_COMPLETE" but the resource is not there (emulator stub trap)
+
+**Symptom:** a stack deployed fine on an emulator, the service then fails with "not found".
+**Check:** `scripts/cdk-verify.sh <stack>` (in `. <(scripts/aws-env.sh <target>)`): every resource is described by
+its own service API; a stub shows as `stubbed: <type>`. `make cdk-stub-demo` shows both halves.
+**Cause:** an emulator configured to stub unsupported CloudFormation types (Floci
+`FLOCI_SERVICES_CLOUDFORMATION_ALLOW_STUB_UNSUPPORTED_RESOURCE_TYPES=true`). keyedge keeps it off.
+**Fix:** keep stubbing off; if the type is needed, record it as a parity row and test that part elsewhere.
+
+## 6. SOPS cannot decrypt after an emulator restart
+
+The KMS key in an emulator lives in memory: after a restart the file's KMS recipient points at a key that no
+longer exists. The age recipient still works: `make secrets-decrypt-check VIA=age`. Re-add the new KMS key:
+`make cdk-deploy && make secrets-rekey && make secrets-decrypt-check VIA=kms`.

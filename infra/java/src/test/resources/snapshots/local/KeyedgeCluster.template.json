@@ -1,0 +1,151 @@
+Description: 'keyedge local: network and ECS cluster'
+Outputs:
+  ExportsOutputRefVpc8378EB38272D6E3A:
+    Value: {Ref: Vpc8378EB38}
+    Export: {Name: 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}
+  ExportsOutputRefClusterEB0386A796A0E3FE:
+    Value: {Ref: ClusterEB0386A7}
+    Export: {Name: 'KeyedgeCluster:ExportsOutputRefClusterEB0386A796A0E3FE'}
+  ExportsOutputRefVpcpublicSubnet1Subnet2BB74ED74EB42ADC:
+    Value: {Ref: VpcpublicSubnet1Subnet2BB74ED7}
+    Export: {Name: 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet1Subnet2BB74ED74EB42ADC'}
+  ExportsOutputRefVpcpublicSubnet2SubnetE34B022AC8BB6627:
+    Value: {Ref: VpcpublicSubnet2SubnetE34B022A}
+    Export: {Name: 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet2SubnetE34B022AC8BB6627'}
+  ExportsOutputFnGetAttClusterDefaultServiceDiscoveryNamespaceC336F9B4Id9F5BE664:
+    Value:
+      Fn::GetAtt: [ClusterDefaultServiceDiscoveryNamespaceC336F9B4, Id]
+    Export: {Name: 'KeyedgeCluster:ExportsOutputFnGetAttClusterDefaultServiceDiscoveryNamespaceC336F9B4Id9F5BE664'}
+Resources:
+  Vpc8378EB38:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.40.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc}
+      - {Key: project, Value: keyedge}
+  VpcpublicSubnet1Subnet2BB74ED7:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1a
+      CidrBlock: 10.40.0.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - {Key: 'aws-cdk:subnet-name', Value: public}
+      - {Key: 'aws-cdk:subnet-type', Value: Public}
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc/publicSubnet1}
+      - {Key: project, Value: keyedge}
+      VpcId: {Ref: Vpc8378EB38}
+  VpcpublicSubnet1RouteTable15C15F8E:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc/publicSubnet1}
+      - {Key: project, Value: keyedge}
+      VpcId: {Ref: Vpc8378EB38}
+  VpcpublicSubnet1RouteTableAssociation4E83B6E4:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: {Ref: VpcpublicSubnet1RouteTable15C15F8E}
+      SubnetId: {Ref: VpcpublicSubnet1Subnet2BB74ED7}
+  VpcpublicSubnet1DefaultRouteB88F9E93:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: {Ref: VpcIGWD7BA715C}
+      RouteTableId: {Ref: VpcpublicSubnet1RouteTable15C15F8E}
+    DependsOn: [VpcVPCGWBF912B6E]
+  VpcpublicSubnet2SubnetE34B022A:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: us-east-1b
+      CidrBlock: 10.40.1.0/24
+      MapPublicIpOnLaunch: true
+      Tags:
+      - {Key: 'aws-cdk:subnet-name', Value: public}
+      - {Key: 'aws-cdk:subnet-type', Value: Public}
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc/publicSubnet2}
+      - {Key: project, Value: keyedge}
+      VpcId: {Ref: Vpc8378EB38}
+  VpcpublicSubnet2RouteTableC5A6DF77:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc/publicSubnet2}
+      - {Key: project, Value: keyedge}
+      VpcId: {Ref: Vpc8378EB38}
+  VpcpublicSubnet2RouteTableAssociationCCE257FF:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: {Ref: VpcpublicSubnet2RouteTableC5A6DF77}
+      SubnetId: {Ref: VpcpublicSubnet2SubnetE34B022A}
+  VpcpublicSubnet2DefaultRoute732F0BEB:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: {Ref: VpcIGWD7BA715C}
+      RouteTableId: {Ref: VpcpublicSubnet2RouteTableC5A6DF77}
+    DependsOn: [VpcVPCGWBF912B6E]
+  VpcIGWD7BA715C:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc}
+      - {Key: project, Value: keyedge}
+  VpcVPCGWBF912B6E:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: {Ref: VpcIGWD7BA715C}
+      VpcId: {Ref: Vpc8378EB38}
+  VpcDynamo993D9CE4:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      RouteTableIds:
+      - {Ref: VpcpublicSubnet1RouteTable15C15F8E}
+      - {Ref: VpcpublicSubnet2RouteTableC5A6DF77}
+      ServiceName:
+        Fn::Join:
+        - ''
+        - - com.amazonaws.
+          - {Ref: 'AWS::Region'}
+          - .dynamodb
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: Name, Value: KeyedgeCluster/Vpc}
+      - {Key: project, Value: keyedge}
+      VpcEndpointType: Gateway
+      VpcId: {Ref: Vpc8378EB38}
+  ClusterEB0386A7:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: keyedge-local
+      ClusterSettings:
+      - {Name: containerInsights, Value: disabled}
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+  ClusterDefaultServiceDiscoveryNamespaceC336F9B4:
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+    Properties:
+      Name: keyedge.local
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      Vpc: {Ref: Vpc8378EB38}
+  Cluster3DA9CCBA:
+    Type: AWS::ECS::ClusterCapacityProviderAssociations
+    Properties:
+      CapacityProviders: [FARGATE, FARGATE_SPOT]
+      Cluster: {Ref: ClusterEB0386A7}
+      DefaultCapacityProviderStrategy:
+      - {Base: 1, CapacityProvider: FARGATE, Weight: 1}
+      - {Base: 0, CapacityProvider: FARGATE_SPOT, Weight: 4}

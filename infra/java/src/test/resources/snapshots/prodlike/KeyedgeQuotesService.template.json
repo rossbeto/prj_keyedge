@@ -1,0 +1,245 @@
+Description: 'keyedge prodlike: quotes service'
+Outputs:
+  ExportsOutputFnGetAttSgD4954771GroupId89BEBF03:
+    Value:
+      Fn::GetAtt: [SgD4954771, GroupId]
+    Export: {Name: 'KeyedgeQuotesService:ExportsOutputFnGetAttSgD4954771GroupId89BEBF03'}
+Parameters:
+  BootstrapVersion: {Type: 'AWS::SSM::Parameter::Value<String>', Default: /cdk-bootstrap/hnb659fds/version,
+    Description: 'Version of the CDK Bootstrap resources in this environment, automatically
+      retrieved from SSM Parameter Store. [cdk:skip]'}
+Resources:
+  TaskTaskRole2879C165:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal: {Service: ecs-tasks.amazonaws.com}
+        Version: '2012-10-17'
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+  TaskTaskRoleDefaultPolicy357FDFA5:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret']
+          Effect: Allow
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - {Ref: 'AWS::Partition'}
+              - :secretsmanager:eu-west-1:111111111111:secret:keyedge/peppers-??????
+        - Action: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret']
+          Effect: Allow
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - {Ref: 'AWS::Partition'}
+              - :secretsmanager:eu-west-1:111111111111:secret:keyedge/callers-??????
+        - Action: ['secretsmanager:GetSecretValue', 'secretsmanager:DescribeSecret']
+          Effect: Allow
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:'
+              - {Ref: 'AWS::Partition'}
+              - :secretsmanager:eu-west-1:111111111111:secret:keyedge/principal-??????
+        Version: '2012-10-17'
+      PolicyName: TaskTaskRoleDefaultPolicy357FDFA5
+      Roles:
+      - {Ref: TaskTaskRole2879C165}
+  Task2AA24BC4:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      ContainerDefinitions:
+      - Environment:
+        - {Name: KEYEDGE_AWS_TARGET, Value: aws}
+        - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/prodlike}
+        Essential: true
+        HealthCheck:
+          Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15080/health/readiness']
+          Interval: 10
+          Retries: 3
+          StartPeriod: 10
+          Timeout: 5
+        Image: keyedge/edge:native
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: {Ref: TaskedgeLogGroupD75B7ADF}
+            awslogs-stream-prefix: edge-native
+            awslogs-region: eu-west-1
+        Name: edge
+        PortMappings:
+        - {ContainerPort: 15080, Protocol: tcp}
+        ReadonlyRootFilesystem: true
+        StopTimeout: 30
+        User: '10001'
+      - DependsOn:
+        - {Condition: HEALTHY, ContainerName: edge}
+        Environment:
+        - {Name: KEYEDGE_AWS_TARGET, Value: aws}
+        - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/prodlike}
+        Essential: true
+        HealthCheck:
+          Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15081/health']
+          Interval: 10
+          Retries: 3
+          Timeout: 5
+        Image: keyedge/quotes:native
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: {Ref: TaskquotesLogGroup06C71464}
+            awslogs-stream-prefix: quotes-native
+            awslogs-region: eu-west-1
+        Name: quotes
+        ReadonlyRootFilesystem: true
+        StopTimeout: 20
+        User: '10001'
+      Cpu: '512'
+      ExecutionRoleArn:
+        Fn::GetAtt: [TaskExecutionRole1A0910B4, Arn]
+      Family: KeyedgeQuotesServiceTask2228FA17
+      Memory: '1024'
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      TaskRoleArn:
+        Fn::GetAtt: [TaskTaskRole2879C165, Arn]
+  TaskedgeLogGroupD75B7ADF:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  TaskExecutionRole1A0910B4:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal: {Service: ecs-tasks.amazonaws.com}
+        Version: '2012-10-17'
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+  TaskExecutionRoleDefaultPolicyE320E5A9:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action: ['logs:CreateLogStream', 'logs:PutLogEvents']
+          Effect: Allow
+          Resource:
+            Fn::GetAtt: [TaskedgeLogGroupD75B7ADF, Arn]
+        - Action: ['logs:CreateLogStream', 'logs:PutLogEvents']
+          Effect: Allow
+          Resource:
+            Fn::GetAtt: [TaskquotesLogGroup06C71464, Arn]
+        Version: '2012-10-17'
+      PolicyName: TaskExecutionRoleDefaultPolicyE320E5A9
+      Roles:
+      - {Ref: TaskExecutionRole1A0910B4}
+  TaskquotesLogGroup06C71464:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  SgD4954771:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: quotes tasks
+      SecurityGroupEgress:
+      - {CidrIp: 0.0.0.0/0, Description: Allow all outbound traffic by default, IpProtocol: '-1'}
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      VpcId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}
+  SgfromKeyedgeEdgeLbAlbSg84168F0A15080D8B02CD3:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Load balancer to target
+      FromPort: 15080
+      GroupId:
+        Fn::GetAtt: [SgD4954771, GroupId]
+      IpProtocol: tcp
+      SourceSecurityGroupId: {'Fn::ImportValue': 'KeyedgeEdgeLb:ExportsOutputFnGetAttAlbSg1155C1BEGroupIdF2A72E65'}
+      ToPort: 15080
+  ServiceD69D759B:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefClusterEB0386A796A0E3FE'}
+      DeploymentConfiguration:
+        Alarms:
+          AlarmNames: []
+          Enable: false
+          Rollback: false
+        DeploymentCircuitBreaker: {Enable: true, Rollback: true}
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController: {Type: ECS}
+      DesiredCount: 2
+      EnableECSManagedTags: false
+      HealthCheckGracePeriodSeconds: 30
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: edge
+        ContainerPort: 15080
+        TargetGroupArn: {'Fn::ImportValue': 'KeyedgeEdgeLb:ExportsOutputRefEdgeGroup02F767FCBCADC47B'}
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: DISABLED
+          SecurityGroups:
+          - Fn::GetAtt: [SgD4954771, GroupId]
+          Subnets:
+          - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcprivateSubnet1SubnetCEAD37168693D373'}
+          - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcprivateSubnet2Subnet2DE7549CDF5ACE3D'}
+      ServiceName: quotes
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt: [ServiceCloudmapService046058A4, Arn]
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      TaskDefinition: {Ref: Task2AA24BC4}
+    DependsOn: [TaskTaskRoleDefaultPolicy357FDFA5, TaskTaskRole2879C165]
+  ServiceCloudmapService046058A4:
+    Type: AWS::ServiceDiscovery::Service
+    Properties:
+      DnsConfig:
+        DnsRecords:
+        - {TTL: 60, Type: A}
+        NamespaceId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputFnGetAttClusterDefaultServiceDiscoveryNamespaceC336F9B4Id9F5BE664'}
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig: {FailureThreshold: 1}
+      Name: quotes
+      NamespaceId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputFnGetAttClusterDefaultServiceDiscoveryNamespaceC336F9B4Id9F5BE664'}
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    DependsOn: [TaskTaskRoleDefaultPolicy357FDFA5, TaskTaskRole2879C165]
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Contains:
+          - ['1', '2', '3', '4', '5']
+          - {Ref: BootstrapVersion}
+      AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap'
+        with a recent version of the CDK CLI.

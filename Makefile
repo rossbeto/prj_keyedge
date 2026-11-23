@@ -118,12 +118,50 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-fli
 contracts-check: ## OpenAPI documents generated at compile time must match contracts/openapi/*.yml
 	$(GRADLE) :services:keys:test --tests '*OpenApiSnapshotTest*'
 
-seed: ## Create table + secrets on the TARGET emulator (until CDK does it, Phase 012)
+seed: ## Table, secrets and SSM contract on the TARGET emulator: the CDK stacks (Phase 012; was scripts/seed.py)
 	scripts/emu.sh assert-local $(TARGET)
-	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/seed.py )
+	$(MAKE) --no-print-directory cdk-deploy TARGET=$(TARGET)
 
 run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
 	( . <(scripts/aws-env.sh $(TARGET)) && KEYEDGE_AWS_TARGET=$(TARGET) MICRONAUT_ENVIRONMENTS=local $(GRADLE) --no-configuration-cache :services:$(S):run )
+
+## ---- Infrastructure as code (Phase 012: CDK Java; Phase 013 adds CDK_LANG=python) -------------
+.PHONY: cdk-synth cdk-test cdk-nag cdk-deploy cdk-destroy cdk-deploy-parity cdk-stub-demo
+STACKS ?=
+cdk-synth: ## Synthesise both modes into infra/out/$(CDK_LANG)/{local,prodlike} (cdk-nag errors fail the synth)
+	$(GRADLE) -q :infra:java:run -Pmode=local
+	$(GRADLE) -q :infra:java:run -Pmode=prodlike
+
+cdk-test: ## Construct/stack assertions, snapshots, nag counts (starts Node: not part of make test)
+	$(GRADLE) :infra:java:test -Pcdk
+
+cdk-nag: cdk-synth ## The cdk-nag gate: synth both modes; any unacknowledged finding fails
+
+cdk-deploy: ## Deploy local templates to the TARGET emulator and verify each resource: make cdk-deploy [TARGET=] [STACKS="..."]
+	@[ -f infra/out/$(CDK_LANG)/local/manifest.json ] || $(MAKE) --no-print-directory cdk-synth
+	CDK_LANG=$(CDK_LANG) scripts/cdk-deploy.sh deploy $(TARGET) $(STACKS)
+
+cdk-destroy: ## Delete the deployed stacks from the TARGET emulator (reverse order)
+	CDK_LANG=$(CDK_LANG) scripts/cdk-deploy.sh destroy $(TARGET) $(STACKS)
+
+cdk-stub-demo: ## The stub trap on Floci: stubbing off fails loudly; on, CloudFormation lies and cdk-verify catches it
+	scripts/cdk-stub-demo.sh
+
+cdk-deploy-parity: ## Try every local stack on TARGET; results/parity/cdk-<target>.json (gaps are parity rows)
+	CDK_LANG=$(CDK_LANG) scripts/cdk-deploy.sh parity $(TARGET)
+
+## ---- Secrets: SOPS with age + the emulator's KMS key (D-44) ---------------------------------------
+.PHONY: age-key secrets-encrypt secrets-rekey secrets-decrypt-check secrets-sync
+age-key: ## Create ~/.config/keyedge/age.key once (outside the repo)
+	scripts/secrets.sh age-key
+secrets-encrypt: ## New secrets/<TARGET>/local.enc.yaml with fresh random values (age + KMS recipients)
+	scripts/secrets.sh encrypt $(TARGET)
+secrets-rekey: ## Point the KMS recipient at the current KmsStack key (after an emulator restart)
+	scripts/secrets.sh rekey $(TARGET)
+secrets-decrypt-check: ## Decrypt into a pipe and validate (VIA=age|kms); never to disk
+	scripts/secrets.sh decrypt-check $(TARGET) $(or $(VIA),age)
+secrets-sync: ## Put the SOPS documents into Secrets Manager on TARGET (overrides CDK-generated values)
+	scripts/secrets.sh sync $(TARGET)
 
 ## ---- Images and the compose stack ---------------------------------------------------------
 SERVICES := issuer keys upstream-sim edge quotes

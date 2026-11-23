@@ -13,8 +13,8 @@ import software.amazon.awssdk.services.dynamodb.model.ScalarAttributeType;
 /**
  * The single table (masterplan §5, D-23 as implemented): one item per key ({@code K#<keyId>}),
  * idempotency records ({@code I#<tenant>#<key>}), usage buckets ({@code U#<tenant>#<keyId>} /
- * minute); GSI1 lists a tenant's keys newest first. Tests and {@code make seed} create it until the
- * CDK stacks do (Phase 012).
+ * minute); GSI1 lists a tenant's keys newest first. The CDK DataStack creates it (Phase 012);
+ * {@link #create} is for tests (Testcontainers) only.
  */
 public final class KeysTable {
   static final String PK = "PK";

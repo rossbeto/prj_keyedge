@@ -1,0 +1,36 @@
+Description: 'keyedge local: keys table'
+Resources:
+  KeysTableF42AC009:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - {AttributeName: PK, AttributeType: S}
+      - {AttributeName: SK, AttributeType: S}
+      - {AttributeName: GSI1PK, AttributeType: S}
+      - {AttributeName: GSI1SK, AttributeType: S}
+      BillingMode: PAY_PER_REQUEST
+      GlobalSecondaryIndexes:
+      - IndexName: GSI1
+        KeySchema:
+        - {AttributeName: GSI1PK, KeyType: HASH}
+        - {AttributeName: GSI1SK, KeyType: RANGE}
+        Projection: {ProjectionType: ALL}
+      KeySchema:
+      - {AttributeName: PK, KeyType: HASH}
+      - {AttributeName: SK, KeyType: RANGE}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: false}
+      TableName: keyedge-keys
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  Contracttablename8469F567:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/table-name
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value: {Ref: KeysTableF42AC009}

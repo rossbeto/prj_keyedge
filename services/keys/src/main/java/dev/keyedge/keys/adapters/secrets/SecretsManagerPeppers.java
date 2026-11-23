@@ -12,8 +12,9 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 /**
  * Peppers from one Secrets Manager secret: {@code {"current": 2, "peppers": {"1": "<base64>", "2":
- * "<base64>"}}}. Rotation = add a version and move {@code current}; an old version is removed only
- * when no stored hash uses it (runbook).
+ * "<base64>"}}}, or flat, {@code {"current": 1, "1": "<base64>"}} — the shape CloudFormation can
+ * generate (one random field per template, Phase 012). Rotation = add a version and move {@code
+ * current}; an old version is removed only when no stored hash uses it (runbook).
  */
 public final class SecretsManagerPeppers implements PepperProvider {
   private final SecretJson secrets;
@@ -39,10 +40,14 @@ public final class SecretsManagerPeppers implements PepperProvider {
 
   @Override
   public Optional<Pepper> byVersion(PepperVersion version) {
+    Map<String, Object> doc = secrets.get(secretId);
     @SuppressWarnings("unchecked")
-    var peppers = (Map<String, Object>) secrets.get(secretId).get("peppers");
-    return Optional.ofNullable(peppers)
-        .map(p -> p.get(Integer.toString(version.value())))
+    Map<String, Object> peppers =
+        doc.get("peppers") instanceof Map<?, ?> nested
+            ? (Map<String, Object>) nested
+            : doc; // or flat
+    return Optional.ofNullable(peppers.get(Integer.toString(version.value())))
+        .filter(String.class::isInstance)
         .map(b64 -> new Pepper(version, Base64.getDecoder().decode((String) b64)));
   }
 }

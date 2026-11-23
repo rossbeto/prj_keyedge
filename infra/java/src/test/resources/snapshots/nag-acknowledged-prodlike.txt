@@ -1,0 +1,6 @@
+AwsSolutions-EC23 1
+AwsSolutions-ECS2 2
+AwsSolutions-IAM5[Resource::arn:<AWS::Partition>:dynamodb:eu-west-1:111111111111:table/keyedge-keys/index/*] 1
+AwsSolutions-S1 1
+AwsSolutions-SMG4 1
+W3010 2

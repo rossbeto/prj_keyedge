@@ -1,0 +1,84 @@
+Description: 'keyedge prodlike: secrets and service contract'
+Parameters:
+  BootstrapVersion: {Type: 'AWS::SSM::Parameter::Value<String>', Default: /cdk-bootstrap/hnb659fds/version,
+    Description: 'Version of the CDK Bootstrap resources in this environment, automatically
+      retrieved from SSM Parameter Store. [cdk:skip]'}
+Resources:
+  PeppersSecretE0BD89DA:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/peppers (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: '1', IncludeSpace: false,
+        PasswordLength: 44, SecretStringTemplate: '{"current":1}'}
+      Name: keyedge/peppers
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  CallersSecret2366EEEF:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/callers (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: edge-quotes,
+        IncludeSpace: false, PasswordLength: 44, SecretStringTemplate: '{}'}
+      Name: keyedge/callers
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  PrincipalSecret006463DD:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/principal (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: key, IncludeSpace: false,
+        PasswordLength: 44, SecretStringTemplate: '{}'}
+      Name: keyedge/principal
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  Contractcallersecretname011C1FC8:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/prodlike/caller-secret-name
+      Tags: {env: prodlike, project: keyedge}
+      Type: String
+      Value: keyedge/callers
+  Contractpeppersecretname3B8AEA2A:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/prodlike/pepper-secret-name
+      Tags: {env: prodlike, project: keyedge}
+      Type: String
+      Value: keyedge/peppers
+  ContractprincipalsecretnameC09C3F20:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/prodlike/principal-secret-name
+      Tags: {env: prodlike, project: keyedge}
+      Type: String
+      Value: keyedge/principal
+  Contractverifyurl300C426E:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/prodlike/verify-url
+      Tags: {env: prodlike, project: keyedge}
+      Type: String
+      Value: http://keys:15100
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Contains:
+          - ['1', '2', '3', '4', '5']
+          - {Ref: BootstrapVersion}
+      AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap'
+        with a recent version of the CDK CLI.

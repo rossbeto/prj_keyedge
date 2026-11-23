@@ -1,0 +1,55 @@
+Description: 'keyedge prodlike: KMS key for SOPS'
+Parameters:
+  BootstrapVersion: {Type: 'AWS::SSM::Parameter::Value<String>', Default: /cdk-bootstrap/hnb659fds/version,
+    Description: 'Version of the CDK Bootstrap resources in this environment, automatically
+      retrieved from SSM Parameter Store. [cdk:skip]'}
+Resources:
+  SopsKeyA805AA7F:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: keyedge SOPS data key encryption
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+        - Action: kms:*
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Join:
+              - ''
+              - - 'arn:'
+                - {Ref: 'AWS::Partition'}
+                - :iam::111111111111:root
+          Resource: '*'
+        Version: '2012-10-17'
+      PendingWindowInDays: 7
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  SopsKeyAlias102C39B3:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/keyedge-sops-prodlike
+      TargetKeyId:
+        Fn::GetAtt: [SopsKeyA805AA7F, Arn]
+  Contractsopskmsarn0B0C2ABA:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/prodlike/sops-kms-arn
+      Tags: {env: prodlike, project: keyedge}
+      Type: String
+      Value:
+        Fn::GetAtt: [SopsKeyA805AA7F, Arn]
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Contains:
+          - ['1', '2', '3', '4', '5']
+          - {Ref: BootstrapVersion}
+      AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap'
+        with a recent version of the CDK CLI.

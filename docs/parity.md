@@ -31,6 +31,7 @@ documented behaviour, not a test: no part of this lab uses a real AWS account.
 |---|---|---|---|---|---|
 | P-02 | CloudFormation `TargetGroupAttributes` (deregistration delay) applied | ignored (300 s default kept) | applied | applied | Phase 001 smoke |
 | P-03 | CloudFormation task definition with container-level `DependsOn` + `Condition` | deploys | **rejected**: "Condition START is not defined" | deploys | Phase 001 smoke; reported upstream (U-06) |
+| P-03b | The CDK `KeyedgeQuotesService` stack (app `DependsOn` edge `HEALTHY`) | deploys | **rejected**: "Condition HEALTHY is not defined" (same defect as P-03) | deploys | Phase 012 `make cdk-deploy-parity` |
 | P-04 | ECS: containers of one task share `localhost` | **no** (each on the compose network) | not run here (no Docker access; Phase 014 retests) | yes (awsvpc) | Phase 001 probe |
 | P-05 | ECS: container health checks run; `dependsOn: HEALTHY` waits | **no** (health UNKNOWN, dependent never starts) | compatibility check: FAILING trace | yes | Phase 001 probe + check |
 | P-06 | ECS runs task containers | yes (Docker siblings, `ecs` profile) | not without the Docker socket (Phase 014 retests with it) | yes | Phase 001 smoke |
@@ -42,3 +43,20 @@ documented behaviour, not a test: no part of this lab uses a real AWS account.
 What this means for the design: code never waits for TTL deletion (reads check `expiresAt`),
 infrastructure checks verify attributes rather than existence, and security properties that the
 emulators do not enforce (IAM, key policies) are checked for *shape* only (cdk-nag), never claimed as tested.
+
+## Infrastructure as code (Phase 012: `make cdk-deploy-parity`, `results/parity/cdk-<target>.json`)
+
+The same bootstrap-less templates on both emulators, deployed with `aws cloudformation deploy` and verified by
+each service's describe API (`scripts/cdk-verify.sh`: DynamoDB table + TTL, Secrets Manager, SSM, KMS key and
+alias; other types are "deployed", not verified — ECS/ELB are exercised by running tasks in Phase 014).
+
+| Stack | Floci | AWS Emulator |
+|---|---|---|
+| KeyedgeKms, KeyedgeData, KeyedgeConfig | deployed, 12/12 resources verified | deployed, 12/12 resources verified |
+| KeyedgeCluster, KeyedgeKeysService, KeyedgeEdgeLb, KeyedgeObservability, KeyedgeCi | deployed | deployed |
+| KeyedgeQuotesService | deployed | rejected (P-03b) |
+
+**Stub trap** (`make cdk-stub-demo`): with Floci's stubbing on, a stack with an unsupported type
+(`AWS::Grafana::Workspace`) reports `CREATE_COMPLETE`; `cdk-verify` (strict) fails naming the type. With
+stubbing off (keyedge's default) CloudFormation fails: "Resource type AWS::Grafana::Workspace is not supported by
+Floci."

@@ -1,0 +1,13 @@
+{
+  "Description": "keyedge stub-trap demo: one resource type the emulator does not implement (Phase 012)",
+  "Resources": {
+    "Workspace": {
+      "Type": "AWS::Grafana::Workspace",
+      "Properties": { "AccountAccessType": "CURRENT_ACCOUNT", "AuthenticationProviders": ["AWS_SSO"], "PermissionType": "SERVICE_MANAGED" }
+    },
+    "Marker": {
+      "Type": "AWS::SSM::Parameter",
+      "Properties": { "Name": "/keyedge/demo/stub-trap", "Type": "String", "Value": "deployed" }
+    }
+  }
+}

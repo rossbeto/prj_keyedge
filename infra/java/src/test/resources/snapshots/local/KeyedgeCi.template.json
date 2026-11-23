@@ -1,0 +1,29 @@
+Description: 'keyedge local: CI identity'
+Resources:
+  GithubProviderFA799421:
+    Type: AWS::IAM::OIDCProvider
+    Properties:
+      ClientIdList: [sts.amazonaws.com]
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      ThumbprintList: [6938fd4d98bab03faadb97b34396831e3780aea1]
+      Url: https://token.actions.githubusercontent.com
+  GithubRole1AFE56DD:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRoleWithWebIdentity
+          Condition:
+            StringEquals: {'token.actions.githubusercontent.com:aud': sts.amazonaws.com}
+            StringLike: {'token.actions.githubusercontent.com:sub': 'repo:<you>/keyedge:ref:refs/tags/v*'}
+          Effect: Allow
+          Principal:
+            Federated:
+              Fn::GetAtt: [GithubProviderFA799421, Arn]
+        Version: '2012-10-17'
+      Description: GitHub Actions for <you>/keyedge (tags only)
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}

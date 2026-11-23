@@ -1,0 +1,72 @@
+Description: 'keyedge local: load balancer for the edge sidecars'
+Outputs:
+  ExportsOutputFnGetAttAlbSg1155C1BEGroupIdF2A72E65:
+    Value:
+      Fn::GetAtt: [AlbSg1155C1BE, GroupId]
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputFnGetAttAlbSg1155C1BEGroupIdF2A72E65'}
+  ExportsOutputRefEdgeGroup02F767FCBCADC47B:
+    Value: {Ref: EdgeGroup02F767FC}
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputRefEdgeGroup02F767FCBCADC47B'}
+  ExportsOutputFnGetAttAlb16C2F182LoadBalancerFullName73BA17C5:
+    Value:
+      Fn::GetAtt: [Alb16C2F182, LoadBalancerFullName]
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputFnGetAttAlb16C2F182LoadBalancerFullName73BA17C5'}
+Resources:
+  AlbSg1155C1BE:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: edge ALB
+      SecurityGroupEgress:
+      - {CidrIp: 0.0.0.0/0, Description: Allow all outbound traffic by default, IpProtocol: '-1'}
+      SecurityGroupIngress:
+      - {CidrIp: 10.40.0.0/16, Description: inside the VPC, FromPort: 80, IpProtocol: tcp,
+        ToPort: 80}
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      VpcId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}
+  Alb16C2F182:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+      - {Key: deletion_protection.enabled, Value: 'false'}
+      Scheme: internal
+      SecurityGroups:
+      - Fn::GetAtt: [AlbSg1155C1BE, GroupId]
+      Subnets:
+      - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet1Subnet2BB74ED74EB42ADC'}
+      - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet2SubnetE34B022AC8BB6627'}
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      Type: application
+  AlbHttp7966E42E:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - TargetGroupArn: {Ref: EdgeGroup02F767FC}
+        Type: forward
+      LoadBalancerArn: {Ref: Alb16C2F182}
+      Port: 80
+      Protocol: HTTP
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+  EdgeGroup02F767FC:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /health/readiness
+      HealthyThresholdCount: 2
+      Matcher: {HttpCode: '200'}
+      Port: 15080
+      Protocol: HTTP
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+      TargetGroupAttributes:
+      - {Key: deregistration_delay.timeout_seconds, Value: '5'}
+      - {Key: stickiness.enabled, Value: 'false'}
+      TargetType: ip
+      UnhealthyThresholdCount: 2
+      VpcId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}

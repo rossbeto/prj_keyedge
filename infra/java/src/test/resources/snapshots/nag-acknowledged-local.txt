@@ -1,0 +1,8 @@
+AwsSolutions-DDB3 1
+AwsSolutions-ECS2 2
+AwsSolutions-ECS4 1
+AwsSolutions-ELB2 1
+AwsSolutions-IAM5[Resource::arn:<AWS::Partition>:dynamodb:us-east-1:000000000000:table/keyedge-keys/index/*] 1
+AwsSolutions-SMG4 1
+AwsSolutions-VPC7 1
+W3010 2

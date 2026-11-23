@@ -3,6 +3,7 @@ package dev.keyedge.keys.wiring;
 import dev.keyedge.awstarget.AwsTarget;
 import dev.keyedge.awstarget.AwsTargetConfigurer;
 import dev.keyedge.awstarget.AwsTargets;
+import dev.keyedge.awstarget.ServiceContract;
 import dev.keyedge.keyformat.KeyEnvironment;
 import dev.keyedge.keyformat.KeyIds;
 import dev.keyedge.keyformat.RatePlan;
@@ -33,6 +34,7 @@ import java.security.SecureRandom;
 import java.time.InstantSource;
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.ssm.SsmClient;
 
 /**
  * Composition root: the only class that knows concrete adapters. Use cases are plain classes built
@@ -54,6 +56,24 @@ public class KeysFactory {
     return AwsTargets.fromEnvironment();
   }
 
+  /**
+   * The SSM contract written by the CDK stacks (D-34); none without KEYEDGE_CONTRACT_PATH (tests).
+   */
+  @Singleton
+  ServiceContract contract(
+      AwsTarget target,
+      @io.micronaut.context.annotation.Value("${keyedge.contract.path:}") String path) {
+    if (path.isBlank()) {
+      return ServiceContract.none();
+    }
+    try (var ssm = AwsTargetConfigurer.configure(SsmClient.builder(), target).build()) {
+      var contract = ServiceContract.load(ssm, path);
+      org.slf4j.LoggerFactory.getLogger("dev.keyedge.contract")
+          .info("names from {}", contract.source());
+      return contract;
+    }
+  }
+
   @Singleton
   @Bean(preDestroy = "close")
   DynamoDbClient dynamo(AwsTarget target) {
@@ -67,24 +87,38 @@ public class KeysFactory {
   }
 
   @Singleton
-  DynamoKeys dynamoKeys(DynamoDbClient dynamo, KeysConfig cfg) {
+  DynamoKeys dynamoKeys(DynamoDbClient dynamo, KeysConfig cfg, ServiceContract contract) {
     return new DynamoKeys(
-        dynamo, cfg.table(), cfg.idempotencyInFlight(), cfg.idempotencyRetention());
+        dynamo,
+        contract.name(ServiceContract.TABLE_NAME, cfg.table()),
+        cfg.idempotencyInFlight(),
+        cfg.idempotencyRetention());
   }
 
   @Singleton
-  DynamoUsage dynamoUsage(DynamoDbClient dynamo, KeysConfig cfg) {
-    return new DynamoUsage(dynamo, cfg.table(), cfg.usageRetention());
+  DynamoUsage dynamoUsage(DynamoDbClient dynamo, KeysConfig cfg, ServiceContract contract) {
+    return new DynamoUsage(
+        dynamo, contract.name(ServiceContract.TABLE_NAME, cfg.table()), cfg.usageRetention());
   }
 
   @Singleton
-  SecretsManagerPeppers peppers(SecretsManagerClient secrets, JsonMapper json, KeysConfig cfg) {
-    return new SecretsManagerPeppers(secrets, json, cfg.pepperSecret(), cfg.secretRefresh());
+  SecretsManagerPeppers peppers(
+      SecretsManagerClient secrets, JsonMapper json, KeysConfig cfg, ServiceContract contract) {
+    return new SecretsManagerPeppers(
+        secrets,
+        json,
+        contract.name(ServiceContract.PEPPER_SECRET, cfg.pepperSecret()),
+        cfg.secretRefresh());
   }
 
   @Singleton
-  SecretsManagerCallers callers(SecretsManagerClient secrets, JsonMapper json, KeysConfig cfg) {
-    return new SecretsManagerCallers(secrets, json, cfg.callerSecret(), cfg.secretRefresh());
+  SecretsManagerCallers callers(
+      SecretsManagerClient secrets, JsonMapper json, KeysConfig cfg, ServiceContract contract) {
+    return new SecretsManagerCallers(
+        secrets,
+        json,
+        contract.name(ServiceContract.CALLER_SECRET, cfg.callerSecret()),
+        cfg.secretRefresh());
   }
 
   @Singleton

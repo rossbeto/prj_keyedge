@@ -3,6 +3,7 @@ package dev.keyedge.edge.wiring;
 import dev.keyedge.awstarget.AwsTarget;
 import dev.keyedge.awstarget.AwsTargetConfigurer;
 import dev.keyedge.awstarget.AwsTargets;
+import dev.keyedge.awstarget.ServiceContract;
 import dev.keyedge.edge.adapters.cache.CaffeineVerdicts;
 import dev.keyedge.edge.adapters.http.HttpUsageSink;
 import dev.keyedge.edge.adapters.http.HttpVerifyClient;
@@ -51,6 +52,7 @@ import java.util.concurrent.ExecutorService;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.ssm.SsmClient;
 
 /** Composition root of the sidecar. */
 @Factory
@@ -69,6 +71,24 @@ public class EdgeFactory {
   @Singleton
   AwsTarget awsTarget() {
     return AwsTargets.fromEnvironment();
+  }
+
+  /**
+   * The SSM contract written by the CDK stacks (D-34); none without KEYEDGE_CONTRACT_PATH (tests).
+   */
+  @Singleton
+  ServiceContract contract(
+      AwsTarget target,
+      @io.micronaut.context.annotation.Value("${keyedge.contract.path:}") String path) {
+    if (path.isBlank()) {
+      return ServiceContract.none();
+    }
+    try (var ssm = AwsTargetConfigurer.configure(SsmClient.builder(), target).build()) {
+      var contract = ServiceContract.load(ssm, path);
+      org.slf4j.LoggerFactory.getLogger("dev.keyedge.contract")
+          .info("names from {}", contract.source());
+      return contract;
+    }
   }
 
   @Singleton
@@ -92,6 +112,7 @@ public class EdgeFactory {
   VerifyClient verifyClient(
       HttpClient http,
       SecretBytes secrets,
+      ServiceContract contract,
       EdgeConfig cfg,
       ResilienceConfig r,
       InstantSource clock,
@@ -101,7 +122,8 @@ public class EdgeFactory {
             http,
             URI.create(cfg.keysUrl()),
             cfg.callerId(),
-            secrets.bytes(cfg.callerSecret(), cfg.callerId()),
+            secrets.bytes(
+                contract.name(ServiceContract.CALLER_SECRET, cfg.callerSecret()), cfg.callerId()),
             clock,
             cfg.verifyTimeout(),
             json);
@@ -238,12 +260,18 @@ public class EdgeFactory {
 
   @Singleton
   UsageSink usageSink(
-      HttpClient http, SecretBytes secrets, EdgeConfig cfg, InstantSource clock, JsonMapper json) {
+      HttpClient http,
+      SecretBytes secrets,
+      ServiceContract contract,
+      EdgeConfig cfg,
+      InstantSource clock,
+      JsonMapper json) {
     return new HttpUsageSink(
         http,
         URI.create(cfg.keysUrl()),
         cfg.callerId(),
-        secrets.bytes(cfg.callerSecret(), cfg.callerId()),
+        secrets.bytes(
+            contract.name(ServiceContract.CALLER_SECRET, cfg.callerSecret()), cfg.callerId()),
         clock,
         cfg.verifyTimeout(),
         json);
@@ -275,6 +303,7 @@ public class EdgeFactory {
 
   @Singleton
   EdgeFilter.EdgeRuntime runtime(
+      ServiceContract contract,
       AdmitRequest admit,
       MeterUsage usage,
       Gate gate,
@@ -294,7 +323,8 @@ public class EdgeFactory {
         decisions,
         gate,
         app,
-        secrets.bytes(cfg.principalSecret(), "key"),
+        secrets.bytes(
+            contract.name(ServiceContract.PRINCIPAL_SECRET, cfg.principalSecret()), "key"),
         clock,
         cfg.drainTimeout(),
         limiter,

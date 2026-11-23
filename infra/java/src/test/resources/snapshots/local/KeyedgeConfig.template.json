@@ -1,0 +1,70 @@
+Description: 'keyedge local: secrets and service contract'
+Resources:
+  PeppersSecretE0BD89DA:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/peppers (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: '1', IncludeSpace: false,
+        PasswordLength: 44, SecretStringTemplate: '{"current":1}'}
+      Name: keyedge/peppers
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  CallersSecret2366EEEF:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/callers (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: edge-quotes,
+        IncludeSpace: false, PasswordLength: 44, SecretStringTemplate: '{}'}
+      Name: keyedge/callers
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  PrincipalSecret006463DD:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: keyedge keyedge/principal (JSON document)
+      GenerateSecretString: {ExcludePunctuation: true, GenerateStringKey: key, IncludeSpace: false,
+        PasswordLength: 44, SecretStringTemplate: '{}'}
+      Name: keyedge/principal
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  Contractcallersecretname011C1FC8:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/caller-secret-name
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value: keyedge/callers
+  Contractpeppersecretname3B8AEA2A:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/pepper-secret-name
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value: keyedge/peppers
+  ContractprincipalsecretnameC09C3F20:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/principal-secret-name
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value: keyedge/principal
+  Contractverifyurl300C426E:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/verify-url
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value: http://keys:15100

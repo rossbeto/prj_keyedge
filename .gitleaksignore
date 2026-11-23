@@ -1,3 +1,3 @@
 # Reviewed false positives only (each line: fingerprint + why).
-# scripts/seed.py:24 is the NAME of a Secrets Manager secret ("keyedge/principal"), not a secret value.
+# scripts/seed.py:24 (removed in Phase 012, still in history) was the NAME of a Secrets Manager secret ("keyedge/principal"), not a secret value.
 scripts/seed.py:generic-api-key:24

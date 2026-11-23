@@ -1,0 +1,41 @@
+Description: 'keyedge local: KMS key for SOPS'
+Resources:
+  SopsKeyA805AA7F:
+    Type: AWS::KMS::Key
+    Properties:
+      Description: keyedge SOPS data key encryption
+      EnableKeyRotation: true
+      KeyPolicy:
+        Statement:
+        - Action: kms:*
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Join:
+              - ''
+              - - 'arn:'
+                - {Ref: 'AWS::Partition'}
+                - :iam::000000000000:root
+          Resource: '*'
+        Version: '2012-10-17'
+      PendingWindowInDays: 7
+      Tags:
+      - {Key: env, Value: local}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  SopsKeyAlias102C39B3:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/keyedge-sops-local
+      TargetKeyId:
+        Fn::GetAtt: [SopsKeyA805AA7F, Arn]
+  Contractsopskmsarn0B0C2ABA:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Description: keyedge contract
+      Name: /keyedge/local/sops-kms-arn
+      Tags: {env: local, project: keyedge}
+      Type: String
+      Value:
+        Fn::GetAtt: [SopsKeyA805AA7F, Arn]

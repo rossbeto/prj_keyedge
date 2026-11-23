@@ -10,8 +10,9 @@ services:
     environment:
       FLOCI_DEFAULT_REGION: us-east-1
       FLOCI_STORAGE_MODE: memory
-      # Unsupported CloudFormation types must fail, not report CREATE_COMPLETE (D-30, D-42).
-      FLOCI_SERVICES_CLOUDFORMATION_ALLOW_STUB_UNSUPPORTED_RESOURCE_TYPES: "false"
+      # Unsupported CloudFormation types must fail, not report CREATE_COMPLETE (D-30, D-42). Only the
+      # stub-trap demo (make cdk-stub-demo) turns it on, to show what the verify step catches.
+      FLOCI_SERVICES_CLOUDFORMATION_ALLOW_STUB_UNSUPPORTED_RESOURCE_TYPES: "${KEYEDGE_FLOCI_ALLOW_STUB:-false}"
     mem_limit: 1g
 
   # Floci with the Docker socket: ECS tasks run as real sibling containers. Root-equivalent access to
@@ -69,6 +70,7 @@ services:
     # The user's UID: AWS Emulator's per-run files are mode 600 (unused with Floci).
     user: "${KEYEDGE_UID:-65532}:${KEYEDGE_GID:-65532}"
     environment:
+      KEYEDGE_CONTRACT_PATH: /keyedge/local   # names from the SSM contract the CDK stacks wrote (D-34)
       MICRONAUT_SERVER_HOST: 0.0.0.0
       MICRONAUT_ENVIRONMENTS: local
       KEYEDGE_ISSUER_JWKS: http://issuer:15110/.well-known/jwks.json
@@ -118,6 +120,7 @@ services:
     command: ["dev.keyedge.edge.Application"]
     user: "${KEYEDGE_UID:-65532}:${KEYEDGE_GID:-65532}"
     environment:
+      KEYEDGE_CONTRACT_PATH: /keyedge/local   # names from the SSM contract the CDK stacks wrote (D-34)
       MICRONAUT_SERVER_HOST: 0.0.0.0
       # through Toxiproxy so `make chaos S=keys-down|keys-slow` can break the control plane (Phase 008)
       KEYEDGE_KEYS_URL: ${KEYEDGE_EDGE_KEYS_URL:-http://toxiproxy:15214}
@@ -152,6 +155,7 @@ services:
     network_mode: "service:edge"
     user: "${KEYEDGE_UID:-65532}:${KEYEDGE_GID:-65532}"
     environment:
+      KEYEDGE_CONTRACT_PATH: /keyedge/local   # names from the SSM contract the CDK stacks wrote (D-34)
       KEYEDGE_AWS_TARGET: ${KEYEDGE_AWS_TARGET:-floci}
       KEYEDGE_AWS_ENDPOINT: ${KEYEDGE_CONTAINER_AWS_ENDPOINT:-http://floci:4566}
       KEYEDGE_AWS_CONNECT_HOST: ${KEYEDGE_CONTAINER_CONNECT_HOST:-}

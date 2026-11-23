@@ -1,0 +1,167 @@
+Description: 'keyedge prodlike: load balancer for the edge sidecars'
+Outputs:
+  ExportsOutputFnGetAttAlbSg1155C1BEGroupIdF2A72E65:
+    Value:
+      Fn::GetAtt: [AlbSg1155C1BE, GroupId]
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputFnGetAttAlbSg1155C1BEGroupIdF2A72E65'}
+  ExportsOutputRefEdgeGroup02F767FCBCADC47B:
+    Value: {Ref: EdgeGroup02F767FC}
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputRefEdgeGroup02F767FCBCADC47B'}
+  ExportsOutputFnGetAttAlb16C2F182LoadBalancerFullName73BA17C5:
+    Value:
+      Fn::GetAtt: [Alb16C2F182, LoadBalancerFullName]
+    Export: {Name: 'KeyedgeEdgeLb:ExportsOutputFnGetAttAlb16C2F182LoadBalancerFullName73BA17C5'}
+Parameters:
+  BootstrapVersion: {Type: 'AWS::SSM::Parameter::Value<String>', Default: /cdk-bootstrap/hnb659fds/version,
+    Description: 'Version of the CDK Bootstrap resources in this environment, automatically
+      retrieved from SSM Parameter Store. [cdk:skip]'}
+Resources:
+  AlbSg1155C1BE:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: edge ALB
+      SecurityGroupEgress:
+      - {CidrIp: 0.0.0.0/0, Description: Allow all outbound traffic by default, IpProtocol: '-1'}
+      SecurityGroupIngress:
+      - {CidrIp: 0.0.0.0/0, Description: HTTPS from the internet, FromPort: 443, IpProtocol: tcp,
+        ToPort: 443}
+      - {CidrIp: 0.0.0.0/0, Description: redirect to HTTPS, FromPort: 80, IpProtocol: tcp,
+        ToPort: 80}
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      VpcId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}
+  Alb16C2F182:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      LoadBalancerAttributes:
+      - {Key: deletion_protection.enabled, Value: 'false'}
+      - {Key: access_logs.s3.enabled, Value: 'true'}
+      - Key: access_logs.s3.bucket
+        Value: {Ref: AccessLogs8B620ECA}
+      - {Key: access_logs.s3.prefix, Value: alb}
+      Scheme: internet-facing
+      SecurityGroups:
+      - Fn::GetAtt: [AlbSg1155C1BE, GroupId]
+      Subnets:
+      - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet1Subnet2BB74ED74EB42ADC'}
+      - {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpcpublicSubnet2SubnetE34B022AC8BB6627'}
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      Type: application
+    DependsOn: [AccessLogsPolicyABDC4D2D]
+  AlbHttpsB7CA700A:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      Certificates:
+      - {CertificateArn: 'arn:aws:acm:eu-west-1:111111111111:certificate/00000000-0000-0000-0000-000000000000'}
+      DefaultActions:
+      - TargetGroupArn: {Ref: EdgeGroup02F767FC}
+        Type: forward
+      LoadBalancerArn: {Ref: Alb16C2F182}
+      Port: 443
+      Protocol: HTTPS
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+  AlbRedirect80To443C790C012:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - RedirectConfig: {Port: '443', Protocol: HTTPS, StatusCode: HTTP_301}
+        Type: redirect
+      LoadBalancerArn: {Ref: Alb16C2F182}
+      Port: 80
+      Protocol: HTTP
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+  EdgeGroup02F767FC:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: /health/readiness
+      HealthyThresholdCount: 2
+      Matcher: {HttpCode: '200'}
+      Port: 15080
+      Protocol: HTTP
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+      TargetGroupAttributes:
+      - {Key: deregistration_delay.timeout_seconds, Value: '30'}
+      - {Key: stickiness.enabled, Value: 'false'}
+      TargetType: ip
+      UnhealthyThresholdCount: 2
+      VpcId: {'Fn::ImportValue': 'KeyedgeCluster:ExportsOutputRefVpc8378EB38272D6E3A'}
+  AccessLogs8B620ECA:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      PublicAccessBlockConfiguration: {BlockPublicAcls: true, BlockPublicPolicy: true,
+        IgnorePublicAcls: true, RestrictPublicBuckets: true}
+      Tags:
+      - {Key: env, Value: prodlike}
+      - {Key: project, Value: keyedge}
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
+  AccessLogsPolicyABDC4D2D:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: {Ref: AccessLogs8B620ECA}
+      PolicyDocument:
+        Statement:
+        - Action: s3:*
+          Condition:
+            Bool: {'aws:SecureTransport': 'false'}
+          Effect: Deny
+          Principal: {AWS: '*'}
+          Resource:
+          - Fn::GetAtt: [AccessLogs8B620ECA, Arn]
+          - Fn::Join:
+            - ''
+            - - Fn::GetAtt: [AccessLogs8B620ECA, Arn]
+              - /*
+        - Action: s3:PutObject
+          Effect: Allow
+          Principal:
+            AWS:
+              Fn::Join:
+              - ''
+              - - 'arn:'
+                - {Ref: 'AWS::Partition'}
+                - :iam::156460612806:root
+          Resource:
+            Fn::Join:
+            - ''
+            - - Fn::GetAtt: [AccessLogs8B620ECA, Arn]
+              - /alb/AWSLogs/111111111111/*
+        - Action: s3:PutObject
+          Condition:
+            StringEquals: {'s3:x-amz-acl': bucket-owner-full-control}
+          Effect: Allow
+          Principal: {Service: delivery.logs.amazonaws.com}
+          Resource:
+            Fn::Join:
+            - ''
+            - - Fn::GetAtt: [AccessLogs8B620ECA, Arn]
+              - /alb/AWSLogs/111111111111/*
+        - Action: s3:GetBucketAcl
+          Effect: Allow
+          Principal: {Service: delivery.logs.amazonaws.com}
+          Resource:
+            Fn::GetAtt: [AccessLogs8B620ECA, Arn]
+        Version: '2012-10-17'
+Rules:
+  CheckBootstrapVersion:
+    Assertions:
+    - Assert:
+        Fn::Not:
+        - Fn::Contains:
+          - ['1', '2', '3', '4', '5']
+          - {Ref: BootstrapVersion}
+      AssertDescription: CDK bootstrap stack version 6 required. Please run 'cdk bootstrap'
+        with a recent version of the CDK CLI.

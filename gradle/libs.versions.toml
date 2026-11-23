@@ -1,5 +1,6 @@
 # Every version in the build lives here (D-03). Renovate groups bumps; CDK versions must match infra/python/uv.lock (D-47).
 [versions]
+snakeyaml = "2.7"
 cyclonedx = "3.6.1"
 java = "25"
 micronaut = "5.2.7"
@@ -44,6 +45,7 @@ jcstress-core = { module = "org.openjdk.jcstress:jcstress-core", version.ref = "
 cdk-lib = { module = "software.amazon.awscdk:aws-cdk-lib", version.ref = "cdk" }
 cdk-nag = { module = "io.github.cdklabs:cdknag", version.ref = "cdkNag" }
 constructs = { module = "software.constructs:constructs", version.ref = "constructs" }
+snakeyaml = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
 awssdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "awssdk" }
 resilience4j-bom = { module = "io.github.resilience4j:resilience4j-bom", version.ref = "resilience4j" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }

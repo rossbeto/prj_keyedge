@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "keyedge infra spec (infra/spec/infra-spec.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "envs",
+    "names",
+    "table",
+    "secrets",
+    "contract",
+    "service",
+    "cluster",
+    "loadBalancer",
+    "alarms",
+    "ci",
+    "nag",
+    "images",
+    "certificate"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "envs": {
+      "type": "object",
+      "required": [
+        "local",
+        "prodlike"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "account",
+          "region"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "pattern": "^[0-9]{12}$"
+          },
+          "region": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "names": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table",
+        "secrets",
+        "ssmRoot",
+        "sopsKeyAlias",
+        "cluster",
+        "namespace",
+        "alarmTopics"
+      ],
+      "properties": {
+        "table": {
+          "type": "string"
+        },
+        "secrets": {
+          "type": "object",
+          "required": [
+            "peppers",
+            "callers",
+            "principal"
+          ],
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "ssmRoot": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "sopsKeyAlias": {
+          "type": "string",
+          "pattern": "^alias/"
+        },
+        "cluster": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "alarmTopics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": [
+        "partitionKey",
+        "sortKey",
+        "gsi1",
+        "ttlAttribute"
+      ]
+    },
+    "secrets": {
+      "type": "object",
+      "required": [
+        "length",
+        "generated"
+      ]
+    },
+    "contract": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z-]+$"
+      }
+    },
+    "service": {
+      "type": "object"
+    },
+    "cluster": {
+      "type": "object"
+    },
+    "loadBalancer": {
+      "type": "object"
+    },
+    "alarms": {
+      "type": "object"
+    },
+    "ci": {
+      "type": "object",
+      "required": [
+        "githubRepo",
+        "oidcThumbprint"
+      ]
+    },
+    "nag": {
+      "type": "object",
+      "required": [
+        "local",
+        "prodlike"
+      ],
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    },
+    "images": {
+      "type": "object",
+      "required": [
+        "edge",
+        "quotes",
+        "keys"
+      ],
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "certificate": {
+      "type": "object",
+      "required": [
+        "prodlikeArn"
+      ]
+    }
+  }
+}
