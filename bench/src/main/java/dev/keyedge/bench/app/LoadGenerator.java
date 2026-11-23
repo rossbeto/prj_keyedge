@@ -23,5 +23,6 @@ public interface LoadGenerator {
       double maxMs,
       long requests,
       long errors,
+      long shed,
       long droppedIterations) {}
 }

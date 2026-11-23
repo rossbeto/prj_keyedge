@@ -163,7 +163,7 @@ public final class Notebook {
   private static String stepTable(BenchResult r, List<String> variants, List<Integer> rates) {
     StringBuilder b = new StringBuilder();
     b.append(
-        "| Variant | Rate (rps) | p50 ms | p99 ms | Errors % | CPU ms/req | Valid steps |\n|---|---|---|---|---|---|---|\n");
+        "| Variant | Rate (rps) | p50 ms | p99 ms | Errors % | Shed % | CPU ms/req | Valid steps |\n|---|---|---|---|---|---|---|---|\n");
     for (String v : variants) {
       for (int rate : rates) {
         long valid =
@@ -187,6 +187,15 @@ public final class Notebook {
             .append(
                 cell(
                     Steps.median(r.steps(), v, rate, s -> s.errorRatio() * 100).orElse(Double.NaN)))
+            .append(" | ")
+            .append(
+                cell(
+                    Steps.median(
+                            r.steps(),
+                            v,
+                            rate,
+                            s -> s.requests() == 0 ? 0 : 100.0 * s.shed() / s.requests())
+                        .orElse(Double.NaN)))
             .append(" | ")
             .append(
                 cell(

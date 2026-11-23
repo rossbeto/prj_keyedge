@@ -83,7 +83,7 @@ class NotebookTest {
     assertThat(s)
         .startsWith("## vt-vs-reactor (Phase 015)")
         .contains("**Prediction** (written 2026-11-24T09:59:00Z")
-        .contains("| reactor | 200 | 20.00 | 60.00 | 0.00 | 0.50 | 1/1 |")
+        .contains("| reactor | 200 | 20.00 | 60.00 | 0.00 | 0.00 | 0.50 | 1/1 |")
         .contains("Saturation (highest rate meeting the SLO): reactor 200 rps.")
         .contains("verdict **confirmed**")
         .contains("emulator floci 2.5.0, commit abc1234");

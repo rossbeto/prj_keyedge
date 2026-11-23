@@ -1,21 +1,24 @@
 # Phase 015: virtual threads (structured and future fan-out) vs the Reactor twin, same quotes JVM, same upstreams.
+# Direct to quotes (signed principal, inside the task's namespace): through the edge, its gradient limiter settles
+# near 22 in flight and sheds from ~200 rps for every variant alike (first run, aborted-through-edge.log).
 name: vt-vs-reactor
 hypothesis: >-
   On the quotes fan-out (3 upstreams, lognormal, pricing median 40 ms / p99 120 ms), the virtual-thread endpoint
   (structured and future adapters) reaches the same saturation rate as the Reactor twin within ±15 %, with p99
   within ±20 % below saturation.
-target: edge
+target: direct
 path: /v1/quotes/sku-7?qty=2&currency=USD
 simScenario: file:bench/sim/lognormal.yaml
-rates: [50, 100, 150, 200, 250, 300, 400]
+rates: [100, 200, 400, 600, 800, 1000, 1200]
 stepSeconds: 20
 warmupSeconds: 30
 repetitions: 3
 # p99 budget: pricing p99 120 ms + fx/stock in parallel + two hops; errors 0.1 %
 slo: { p99Ms: 250, maxErrorRatio: 0.001 }
-# W ≈ max of three lognormals (~50 ms median, more under load: 60 ms); the edge's gradient cap 500;
-# 4 pinned CPUs; ~4 ms CPU per request for JVM edge + quotes (native-vs-jvm: 26.5 CPU-s for 6 000 requests = 4.4 ms)
-model: { latencyMs: 60, concurrencyCap: 500, sutCpus: 4, cpuMsPerRequest: 4.4 }
+# W ≈ max of three lognormals (~50 ms median, 60 ms under load); no cap on the direct path (virtual threads / event
+# loop): 10 000 stands for "none"; 4 pinned CPUs; quotes alone ~2.5 ms CPU per request (edge+quotes 4.4 ms in
+# native-vs-jvm, the edge's share ~40 %) -> CPU-bound near 1 600 rps
+model: { latencyMs: 60, concurrencyCap: 10000, sutCpus: 4, cpuMsPerRequest: 2.5 }
 variants:
   - { name: structured, flavor: jvm, env: { KEYEDGE_QUOTES_FANOUT: STRUCTURED } }
   - { name: future, flavor: jvm, env: { KEYEDGE_QUOTES_FANOUT: FUTURE } }

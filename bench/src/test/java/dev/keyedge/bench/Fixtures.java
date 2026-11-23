@@ -18,7 +18,8 @@ public final class Fixtures {
 
   public static StepResult step(String variant, int rate, double p99, long errors) {
     return new StepResult(
-        variant, rate, 1, rate, p99 / 3, p99 / 2, p99, p99 * 2, 1000, errors, 0, 0.5, true, null);
+        variant, rate, 1, rate, p99 / 3, p99 / 2, p99, p99 * 2, 1000, errors, 0, 0, 0.5, true,
+        null);
   }
 
   public static Scenario scenario(String name, List<Integer> rates, String... variants) {

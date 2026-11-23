@@ -161,6 +161,7 @@ public final class RunScenario {
             out.maxMs(),
             out.requests(),
             out.errors(),
+            out.shed(),
             out.droppedIterations(),
             cpuPerReq,
             true,

@@ -21,6 +21,7 @@ public final class K6Summary {
         d.path("max").asDouble(0),
         reqs.path("count").asLong(0),
         errors,
+        m.path("status_503_overloaded").path("count").asLong(0),
         m.path("dropped_iterations").path("count").asLong(0));
   }
 }

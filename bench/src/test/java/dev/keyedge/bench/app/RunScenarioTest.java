@@ -31,7 +31,8 @@ class RunScenarioTest {
       r -> {
         offered.add(r);
         double p99 = r.rate() >= 300 ? 400 : 20;
-        return new LoadGenerator.LoadOutcome(r.rate(), 5, 10, p99, p99, r.rate() * 5L, 0, dropped);
+        return new LoadGenerator.LoadOutcome(
+            r.rate(), 5, 10, p99, p99, r.rate() * 5L, 0, 0, dropped);
       };
   final Environment env =
       new Environment() {

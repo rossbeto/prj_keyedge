@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
  * One load step as measured. A step with dropped iterations was generator-bound (k6 could not keep
  * the offered rate), so it says nothing about the system under test: {@code valid} is false.
  *
+ * @param shed failed requests the edge answered 503 "overloaded" (its own load shedding)
  * @param cpuPerReqMs CPU time of the system-under-test containers per completed request, if read
  */
 public record StepResult(
@@ -19,6 +20,7 @@ public record StepResult(
     double maxMs,
     long requests,
     long errors,
+    long shed,
     long droppedIterations,
     @Nullable Double cpuPerReqMs,
     boolean valid,
@@ -42,6 +44,7 @@ public record StepResult(
         maxMs,
         requests,
         errors,
+        shed,
         droppedIterations,
         cpuPerReqMs,
         false,

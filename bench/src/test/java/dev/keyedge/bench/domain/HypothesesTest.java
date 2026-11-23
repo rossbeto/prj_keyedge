@@ -55,8 +55,9 @@ class HypothesesTest {
     var s = scenario("native-overhead", List.of(100, 200, 300), "via-edge", "direct");
     var steps =
         List.of(
-            new StepResult("via-edge", 200, 1, 200, 11, 15, 24, 30, 1000, 0, 0, null, true, null),
-            new StepResult("direct", 200, 1, 200, 10, 14, 21, 30, 1000, 0, 0, null, true, null));
+            new StepResult(
+                "via-edge", 200, 1, 200, 11, 15, 24, 30, 1000, 0, 0, 0, null, true, null),
+            new StepResult("direct", 200, 1, 200, 10, 14, 21, 30, 1000, 0, 0, 0, null, true, null));
     var e = Hypotheses.evaluate(s, steps, Map.of());
     assertThat(e.verdict()).isEqualTo(Verdict.CONFIRMED);
     assertThat(e.findings()).containsEntry("added_p50_ms", 1.0).containsEntry("added_p99_ms", 3.0);
