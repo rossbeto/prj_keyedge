@@ -1,12 +1,12 @@
 {
   "schema" : "keyedge.bench-result.v1",
-  "runId" : "20261123-164018-bench-smoke",
+  "runId" : "20261123-165718-bench-smoke",
   "scenario" : "bench-smoke",
   "hypothesis" : "The harness offers 20 req/s for 10 s through the edge with no dropped iterations.",
-  "startedAt" : "2026-11-23T16:40:20.758758657Z",
+  "startedAt" : "2026-11-23T16:57:21.595306722Z",
   "git" : {
-    "sha" : "7a87e10",
-    "dirty" : true
+    "sha" : "c7d767a",
+    "dirty" : false
   },
   "fingerprint" : {
     "host" : "FS-5Q135J4",
@@ -23,12 +23,12 @@
     },
     "emulatorKind" : "floci",
     "emulatorVersion" : "2.5.0",
-    "loadAverage1m" : 3.21
+    "loadAverage1m" : 7.51
   },
   "prediction" : {
     "scenario" : "bench-smoke",
-    "runId" : "20261123-164018-bench-smoke",
-    "writtenAt" : "2026-11-23T16:40:19.594171590Z",
+    "runId" : "20261123-165718-bench-smoke",
+    "writtenAt" : "2026-11-23T16:57:19.816572489Z",
     "statement" : "The harness offers 20 req/s for 10 s through the edge with no dropped iterations. Model: W=40 ms, cap 500 in flight -> 12500 rps; 4.0 CPUs at 4.00 ms CPU/request -> 1000 rps; predicted saturation 1000 rps (CPU-bound).",
     "numbers" : {
       "cap_bound_rps" : 12500.0,
@@ -45,23 +45,24 @@
     "variant" : "jvm",
     "offeredRps" : 20,
     "repetition" : 1,
-    "achievedRps" : 19.433483300730018,
-    "p50Ms" : 37.898535,
-    "p90Ms" : 593.5419989999995,
-    "p99Ms" : 1491.00020344,
-    "maxMs" : 1576.738525,
-    "requests" : 195,
+    "achievedRps" : 19.997502599889312,
+    "p50Ms" : 36.5037775,
+    "p90Ms" : 47.332982200000004,
+    "p99Ms" : 106.89183603999984,
+    "maxMs" : 155.422846,
+    "requests" : 200,
     "errors" : 0,
-    "droppedIterations" : 6,
-    "cpuPerReqMs" : 66.408,
-    "valid" : false,
-    "invalidReason" : "generator-bound: 6 dropped iterations"
+    "shed" : 0,
+    "droppedIterations" : 0,
+    "cpuPerReqMs" : 56.433,
+    "valid" : true,
+    "invalidReason" : null
   } ],
   "saturationRps" : {
-    "jvm" : 0
+    "jvm" : 20
   },
-  "verdict" : "refuted",
-  "verdictDetail" : "invalid steps in the smoke run",
+  "verdict" : "confirmed",
+  "verdictDetail" : "harness ok: every step valid",
   "findings" : {
     "steps" : 1.0
   },

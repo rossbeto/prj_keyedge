@@ -9,36 +9,36 @@
     "within_2x_of_bucket4j": true
   },
   "ns_per_op": {
-    "aimdAcquireRelease": 16.18,
-    "bucket4jContendedOneKey": 155.52,
-    "bucket4jUncontended": 38.25,
-    "fixedAcquireRelease": 15.93,
-    "gcraContendedOneKey": 139.97,
-    "gcraUncontended": 23.58,
-    "keyedManyKeys": 491.29,
-    "packedContendedOneKey": 222.68,
-    "packedUncontended": 36.12,
-    "plainMapManyKeys": 152.26
+    "aimdAcquireRelease": 24.82,
+    "bucket4jContendedOneKey": 278.44,
+    "bucket4jUncontended": 41.08,
+    "fixedAcquireRelease": 20.71,
+    "gcraContendedOneKey": 214.99,
+    "gcraUncontended": 33.26,
+    "keyedManyKeys": 546.3,
+    "packedContendedOneKey": 284.26,
+    "packedUncontended": 45.23,
+    "plainMapManyKeys": 209.3
   },
   "ns_per_op_error": {
-    "aimdAcquireRelease": 2.39,
-    "bucket4jContendedOneKey": 11.63,
-    "bucket4jUncontended": 5.13,
-    "fixedAcquireRelease": 2.3,
-    "gcraContendedOneKey": 11.19,
-    "gcraUncontended": 1.55,
-    "keyedManyKeys": 75.13,
-    "packedContendedOneKey": 29.19,
-    "packedUncontended": 7.73,
-    "plainMapManyKeys": 17.43
+    "aimdAcquireRelease": 15.56,
+    "bucket4jContendedOneKey": 52.51,
+    "bucket4jUncontended": 4.08,
+    "fixedAcquireRelease": 2.99,
+    "gcraContendedOneKey": 25.05,
+    "gcraUncontended": 5.52,
+    "keyedManyKeys": 67.9,
+    "packedContendedOneKey": 46.72,
+    "packedUncontended": 6.94,
+    "plainMapManyKeys": 66.94
   },
   "ratios": {
-    "gcra_contended_vs_uncontended": 5.94,
-    "gcra_vs_bucket4j_uncontended": 0.62,
-    "gcra_vs_bucket4j_contended": 0.9,
-    "packed_vs_gcra_uncontended": 1.53,
-    "keyed_100k_vs_single_key": 20.83,
-    "aimd_vs_fixed": 1.02
+    "gcra_contended_vs_uncontended": 6.46,
+    "gcra_vs_bucket4j_uncontended": 0.81,
+    "gcra_vs_bucket4j_contended": 0.77,
+    "packed_vs_gcra_uncontended": 1.36,
+    "keyed_100k_vs_single_key": 16.43,
+    "aimd_vs_fixed": 1.2
   },
   "environment": {
     "cpu": "Intel(R) Core(TM) Ultra 7 265U",
@@ -48,7 +48,7 @@
     "vm": "OpenJDK 64-Bit Server VM 25.0.5.1+2-LTS",
     "jmh": "1.37",
     "forks": 2,
-    "git": "82e68d9"
+    "git": "c7d767a"
   },
-  "recorded_at": "2026-11-22T21:44:02+00:00"
+  "recorded_at": "2026-11-23T18:30:33+00:00"
 }

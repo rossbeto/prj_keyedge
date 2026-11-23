@@ -34,13 +34,13 @@ No phase deploys to a real AWS account.
 ## Measured results
 
 <!-- bench:begin -->
-19 experiments with a hypothesis written before the run: 16 confirmed, 2 refuted, 1 inconclusive ([lab notebook](docs/lab-notebook.md)).
+22 experiments with a hypothesis written before the run: 15 confirmed, 6 refuted, 1 inconclusive ([lab notebook](docs/lab-notebook.md)).
 
 | Bench | Verdict | Finding | Results |
 |---|---|---|---|
-| vt-vs-reactor | not run | — | — |
-| native-overhead | not run | — | — |
-| fargate-size | not run | — | — |
+| vt-vs-reactor | **refuted** | saturation within ±15 % of the Reactor twin: no; p99 within ±20 % at rates ≤ 100 rps: yes | [bench-result.json](results/bench/20261123-165813-vt-vs-reactor/bench-result.json) |
+| native-overhead | **refuted** | at 100 rps the edge adds 8.13 ms p50 (limit 2) and 199.38 ms p99 (limit 5) | [bench-result.json](results/bench/20261123-172451-native-overhead/bench-result.json) |
+| fargate-size | **refuted** | at 200 rps: native 0.25 vCPU misses, JVM 0.25 vCPU misses, JVM 0.5 vCPU misses the SLO | [bench-result.json](results/bench/20261123-173240-fargate-size/bench-result.json) |
 
 ![native vs JVM](docs/media/native-vs-jvm.svg)
 <!-- bench:end -->

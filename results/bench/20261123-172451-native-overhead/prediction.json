@@ -1,0 +1,14 @@
+{
+  "scenario" : "native-overhead",
+  "runId" : "20261123-172451-native-overhead",
+  "writtenAt" : "2026-11-23T17:24:51.971253194Z",
+  "statement" : "The native edge adds < 2 ms p50 and < 5 ms p99 versus calling quotes directly, at the middle offered rate. Model: W=35 ms, cap 500 in flight -> 14286 rps; 4.0 CPUs at 2.00 ms CPU/request -> 2000 rps; predicted saturation 2000 rps (CPU-bound).",
+  "numbers" : {
+    "cap_bound_rps" : 14285.7,
+    "cpu_bound_rps" : 2000.0,
+    "in_flight@100" : 3.5,
+    "in_flight@150" : 5.3,
+    "in_flight@50" : 1.8,
+    "predicted_saturation_rps" : 2000.0
+  }
+}

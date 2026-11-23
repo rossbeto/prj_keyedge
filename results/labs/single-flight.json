@@ -1,1 +1,1 @@
-{"experiment":"single-flight","hypothesis":"500 concurrent requests with one cold key cause exactly 1 verify call","requests":500,"verify_calls_seen_by_keys":1,"verdict":"confirmed","recorded_at":"2026-11-22T23:13:30.607515817Z"}
+{"experiment":"single-flight","hypothesis":"500 concurrent requests with one cold key cause exactly 1 verify call","requests":500,"verify_calls_seen_by_keys":1,"verdict":"confirmed","recorded_at":"2026-11-23T17:48:47.020329503Z"}

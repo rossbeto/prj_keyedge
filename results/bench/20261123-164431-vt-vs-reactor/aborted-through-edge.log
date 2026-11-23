@@ -1,0 +1,27 @@
+prediction written: On the quotes fan-out (3 upstreams, lognormal, pricing median 40 ms / p99 120 ms), the virtual-thread endpoint (structured and future adapters) reaches the same saturation rate as the Reactor twin within ±15 %, with p99 within ±20 % below saturation. Model: W=60 ms, cap 500 in flight -> 8333 rps; 4.0 CPUs at 4.40 ms CPU/request -> 909 rps; predicted saturation 909 rps (CPU-bound).
+  structured 50 rps #1: p50 47.5 p99 125.8 ms, errors 0/1000
+  structured 50 rps #2: p50 48.7 p99 118.7 ms, errors 0/1001
+  structured 50 rps #3: p50 47.2 p99 126.0 ms, errors 0/1001
+  structured 100 rps #1: p50 48.0 p99 133.7 ms, errors 0/2001
+  structured 100 rps #2: p50 45.8 p99 125.6 ms, errors 0/2000
+  structured 100 rps #3: p50 45.7 p99 121.9 ms, errors 0/2001
+  structured 150 rps #1: p50 44.8 p99 119.6 ms, errors 1/3000
+  structured 150 rps #2: p50 45.7 p99 123.7 ms, errors 2/3001
+  structured 150 rps #3: p50 47.2 p99 129.4 ms, errors 2/3000
+  structured 200 rps #1: p50 46.4 p99 131.0 ms, errors 43/4000
+  structured 200 rps #2: p50 46.9 p99 123.6 ms, errors 8/4000
+  structured 200 rps #3: p50 47.6 p99 128.1 ms, errors 62/4001
+  structured 250 rps #1: p50 52.4 p99 265.5 ms, errors 498/5001
+  structured 250 rps #2: p50 48.0 p99 139.3 ms, errors 80/5001
+  structured 250 rps #3: p50 46.6 p99 126.5 ms, errors 132/5001
+  structured 300 rps #1: p50 46.4 p99 126.7 ms, errors 292/6001
+  structured 300 rps #2: p50 50.1 p99 136.5 ms, errors 298/6001
+  structured 300 rps #3: p50 51.6 p99 131.0 ms, errors 35/6001
+  structured 400 rps #1: p50 46.8 p99 130.8 ms, errors 1225/8000
+  structured 400 rps #2: p50 47.8 p99 137.6 ms, errors 1049/8000
+  structured 400 rps #3: p50 47.9 p99 130.8 ms, errors 842/8001
+  future 50 rps #1: p50 50.4 p99 146.0 ms, errors 0/1001
+  future 50 rps #2: p50 49.2 p99 120.7 ms, errors 0/1001
+  future 50 rps #3: p50 52.8 p99 144.8 ms, errors 0/1000
+  future 100 rps #1: p50 48.6 p99 134.4 ms, errors 0/2000
+aborted: through the edge, the edge's gradient limiter (keyedge_edge_concurrency_limit 22) shed load from 200 rps; re-run against quotes directly

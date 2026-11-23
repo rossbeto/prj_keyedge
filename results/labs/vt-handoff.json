@@ -1,1 +1,1 @@
-{"experiment":"vt-handoff","hypothesis":"moving the decision from the calling thread to a virtual thread and back costs < 0.1 ms median","iterations":20000,"median_delta_ms":0.0884,"p99_delta_ms":0.1565,"verdict":"confirmed","recorded_at":"2026-11-22T23:13:13.229926123Z"}
+{"experiment":"vt-handoff","hypothesis":"moving the decision from the calling thread to a virtual thread and back costs < 0.1 ms median","iterations":20000,"median_delta_ms":0.0371,"p99_delta_ms":0.1923,"verdict":"confirmed","recorded_at":"2026-11-23T17:51:43.977543001Z"}

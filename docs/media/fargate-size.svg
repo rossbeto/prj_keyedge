@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420" role="img" aria-label="fargate-size: p99 at 200 rps by edge size">
+<title>fargate-size: p99 at 200 rps by edge size</title>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b;font:600 15px system-ui,sans-serif}.t2{fill:#52514e;font:12px system-ui,sans-serif}.grid{stroke:#e4e3df;stroke-width:1}.axis{stroke:#8a8984;stroke-width:1}.line{fill:none;stroke-width:2}.ring{stroke:#fcfcfb;stroke-width:2}.s0{stroke:#2a78d6}.s1{stroke:#eb6834}.s2{stroke:#1baf7a}.f0{fill:#2a78d6}.f1{fill:#eb6834}.f2{fill:#1baf7a}
+@media (prefers-color-scheme:dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#33332f}.axis{stroke:#6b6a66}.ring{stroke:#1a1a19}.s0{stroke:#3987e5}.s1{stroke:#d95926}.s2{stroke:#199e70}.f0{fill:#3987e5}.f1{fill:#d95926}.f2{fill:#199e70}}
+</style>
+<rect class="bg" width="100%" height="100%"/>
+<text class="t1" x="64" y="28">fargate-size: p99 at 200 rps by edge size</text>
+<line class="grid" x1="64" x2="600" y1="364" y2="364"/><text class="t2" text-anchor="end" x="56" y="368">0</text>
+<line class="grid" x1="64" x2="600" y1="294" y2="294"/><text class="t2" text-anchor="end" x="56" y="298">250</text>
+<line class="grid" x1="64" x2="600" y1="224" y2="224"/><text class="t2" text-anchor="end" x="56" y="228">500</text>
+<line class="grid" x1="64" x2="600" y1="154" y2="154"/><text class="t2" text-anchor="end" x="56" y="158">750</text>
+<line class="grid" x1="64" x2="600" y1="84" y2="84"/><text class="t2" text-anchor="end" x="56" y="88">1000</text>
+<line class="axis" x1="64" x2="600" y1="364" y2="364"/>
+<text class="t2" x="64" y="54">p99 ms</text>
+<path class="f0" d="M136.3 364V291.8Q136.3 287.8 140.3 287.8H166.3Q170.3 287.8 170.3 291.8V364Z"><title>native-0.25, p99: 272.1 p99 ms</title></path>
+<text class="t2" text-anchor="middle" x="153.3" y="281.8">272.1</text>
+<text class="t2" text-anchor="middle" x="153.3" y="384">native-0.25</text>
+<path class="f0" d="M315 364V190.8Q315 186.8 319 186.8H345Q349 186.8 349 190.8V364Z"><title>jvm-0.5, p99: 632.9 p99 ms</title></path>
+<text class="t2" text-anchor="middle" x="332" y="180.8">632.9</text>
+<text class="t2" text-anchor="middle" x="332" y="384">jvm-0.5</text>
+<path class="f0" d="M493.7 364V336.0Q493.7 332.0 497.7 332.0H523.7Q527.7 332.0 527.7 336.0V364Z"><title>jvm-1, p99: 114.4 p99 ms</title></path>
+<text class="t2" text-anchor="middle" x="510.7" y="326.0">114.4</text>
+<text class="t2" text-anchor="middle" x="510.7" y="384">jvm-1</text>
+</svg>

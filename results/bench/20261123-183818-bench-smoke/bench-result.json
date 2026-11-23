@@ -1,0 +1,70 @@
+{
+  "schema" : "keyedge.bench-result.v1",
+  "runId" : "20261123-183818-bench-smoke",
+  "scenario" : "bench-smoke",
+  "hypothesis" : "The harness offers 20 req/s for 10 s through the edge with no dropped iterations.",
+  "startedAt" : "2026-11-23T18:38:20.698976474Z",
+  "git" : {
+    "sha" : "7fc1ea4",
+    "dirty" : false
+  },
+  "fingerprint" : {
+    "host" : "FS-5Q135J4",
+    "cpus" : 14,
+    "memTotalMb" : 20000,
+    "kernel" : "6.6.87.2-microsoft-standard-WSL2",
+    "docker" : "29.7.2",
+    "jdk" : "OpenJDK 64-Bit Server VM 25.0.5.1+2-LTS",
+    "images" : {
+      "edge" : "keyedge/edge:dev sha256:58ebdd4a4f048af1f898726c6d0f41746499edc8ce3fc8a9a82f1da035d21fa2",
+      "keys" : "keyedge/keys:dev sha256:fb3551f6a11f3fd24416396b69d7ad5ec3ad9fee9cbaef716d1dd21e9117c25f",
+      "quotes" : "keyedge/quotes:dev sha256:9f8db0e2955d88b0b47fd07c0635622423f42b2b9ce1d212e085c6649dc58fc5",
+      "upstream-sim" : "keyedge/upstream-sim:dev sha256:87ff660e7eb599d1458e881e11acb81afedd14e844d9298b819f18423a40f9e5"
+    },
+    "emulatorKind" : "aws-emulator",
+    "emulatorVersion" : "1.0.583",
+    "loadAverage1m" : 3.1
+  },
+  "prediction" : {
+    "scenario" : "bench-smoke",
+    "runId" : "20261123-183818-bench-smoke",
+    "writtenAt" : "2026-11-23T18:38:19.481166720Z",
+    "statement" : "The harness offers 20 req/s for 10 s through the edge with no dropped iterations. Model: W=40 ms, cap 500 in flight -> 12500 rps; 4.0 CPUs at 4.00 ms CPU/request -> 1000 rps; predicted saturation 1000 rps (CPU-bound).",
+    "numbers" : {
+      "cap_bound_rps" : 12500.0,
+      "cpu_bound_rps" : 1000.0,
+      "in_flight@20" : 0.8,
+      "predicted_saturation_rps" : 1000.0
+    }
+  },
+  "slo" : {
+    "p99Ms" : 1000.0,
+    "maxErrorRatio" : 0.01
+  },
+  "steps" : [ {
+    "variant" : "jvm",
+    "offeredRps" : 20,
+    "repetition" : 1,
+    "achievedRps" : 20.02573638297091,
+    "p50Ms" : 35.473412,
+    "p90Ms" : 43.482075,
+    "p99Ms" : 49.682363,
+    "maxMs" : 50.532775,
+    "requests" : 201,
+    "errors" : 0,
+    "shed" : 0,
+    "droppedIterations" : 0,
+    "cpuPerReqMs" : 40.793,
+    "valid" : true,
+    "invalidReason" : null
+  } ],
+  "saturationRps" : {
+    "jvm" : 20
+  },
+  "verdict" : "confirmed",
+  "verdictDetail" : "harness ok: every step valid",
+  "findings" : {
+    "steps" : 1.0
+  },
+  "notes" : [ ]
+}

@@ -1,0 +1,12 @@
+{
+  "scenario" : "fargate-size",
+  "runId" : "20261123-173240-fargate-size",
+  "writtenAt" : "2026-11-23T17:32:41.654833066Z",
+  "statement" : "The native edge meets the SLO (p99 ≤ 150 ms total, errors ≤ 0.1 %) at 0.25 vCPU / 256 MiB; the JVM edge does not at that size and needs 0.5 vCPU / 512 MiB. Model: W=35 ms, cap 500 in flight -> 14286 rps; 0.3 CPUs at 1.00 ms CPU/request -> 250 rps; predicted saturation 250 rps (CPU-bound).",
+  "numbers" : {
+    "cap_bound_rps" : 14285.7,
+    "cpu_bound_rps" : 250.0,
+    "in_flight@200" : 7.0,
+    "predicted_saturation_rps" : 250.0
+  }
+}
