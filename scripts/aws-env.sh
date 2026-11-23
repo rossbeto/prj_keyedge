@@ -17,6 +17,10 @@ case "$target" in
     echo 'export AWS_ENDPOINT_URL=http://127.0.0.1:15566'
     echo 'export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test'
     ;;
+  floci-ecs)   # Floci with the Docker socket (compose profile `ecs`, Phase 014): ECS tasks run as containers
+    echo 'export AWS_ENDPOINT_URL=http://127.0.0.1:15567'
+    echo 'export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test'
+    ;;
   aws-emulator)
     echo "export AWS_ENDPOINT_URL=https://127.0.0.1:15297"
     echo "export AWS_SHARED_CREDENTIALS_FILE=$emu_dir/emulator_credentials"
@@ -31,5 +35,5 @@ case "$target" in
       echo "unset AWS_ENDPOINT_URL"
     fi
     ;;
-  *) echo "echo 'unknown target: $target (floci | aws-emulator | aws)' >&2; false" ;;
+  *) echo "echo 'unknown target: $target (floci | floci-ecs | aws-emulator | aws)' >&2; false" ;;
 esac

@@ -69,11 +69,22 @@ class StacksTest {
           .doesNotContainKey("Secrets"); // names via the contract, values via the task role
       var env = (List<Map<String, Object>>) c.get("Environment");
       assertThat(env)
-          .extracting(e -> e.get("Name"))
-          .containsOnly("KEYEDGE_CONTRACT_PATH", "KEYEDGE_AWS_TARGET");
+          .extracting(e -> String.valueOf(e.get("Name")))
+          .contains("KEYEDGE_CONTRACT_PATH", "KEYEDGE_AWS_TARGET", "MICRONAUT_SERVER_HOST")
+          .noneMatch(
+              n -> n.contains("SECRET") || n.contains("PASSWORD")); // names only, never values
     }
     assertThat(edge).containsKey("PortMappings").containsKey("HealthCheck");
+    assertThat(names((List<Map<String, Object>>) edge.get("Environment")))
+        .contains("KEYEDGE_APP_URL", "KEYEDGE_KEYS_URL");
+    assertThat(names((List<Map<String, Object>>) app.get("Environment")))
+        .contains("KEYEDGE_QUOTES_PRICING_URL", "KEYEDGE_QUOTES_TOKEN_URL")
+        .doesNotContain("KEYEDGE_APP_URL");
     assertThat(app).doesNotContainKey("PortMappings");
+  }
+
+  private static List<String> names(List<Map<String, Object>> env) {
+    return env.stream().map(e -> String.valueOf(e.get("Name"))).toList();
   }
 
   @ParameterizedTest

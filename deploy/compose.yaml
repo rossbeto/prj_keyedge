@@ -20,7 +20,8 @@ services:
   floci-ecs:
     profiles: [ecs]
     image: floci/floci:2.5.0@sha256:a0fbf944d7f338cc0856f1ef83831ea749ff2be71956eb7a7fce08fc21458e19
-    ports: ["127.0.0.1:15567:4566"]
+    # 4566: the API; 80: the data plane of the emulated ALB (listener port 80 of KeyedgeEdgeLb, Phase 014 L3)
+    ports: ["127.0.0.1:15567:4566", "127.0.0.1:15180:80"]
     user: root
     environment:
       FLOCI_DEFAULT_REGION: us-east-1

@@ -1,0 +1,13 @@
+{
+  "experiment": "task-start-order",
+  "target": "floci-ecs",
+  "task": "51f974d82b31409ea5363abf665be0be",
+  "edge_started": "2026-11-23T11:28:43.132826526Z",
+  "edge_ready": "2026-11-23T11:28:43.754Z",
+  "app_started": "2026-11-23T11:28:43.781613756Z",
+  "app_start_minus_edge_ready_s": 0.028,
+  "docker_healthcheck_on_edge": null,
+  "ecs_edge_health_status": "UNKNOWN",
+  "verdict": "refuted",
+  "reason": "dependsOn HEALTHY is not enforced: the task definition's health check is not run (no Docker health check on the container, ECS health UNKNOWN); containers start in START order, so the app can start before the edge is ready (first run 2026-11-23: app started 2.39 s before the edge was ready)"
+}

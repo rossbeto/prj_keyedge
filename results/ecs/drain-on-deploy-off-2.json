@@ -1,0 +1,243 @@
+{
+  "experiment": "drain-on-deploy",
+  "label": "off-2",
+  "rate": 50,
+  "duration_s": 90,
+  "replace_at_s": 10,
+  "requests": 4501,
+  "status_counts": {
+    "200": 4421,
+    "503": 80
+  },
+  "non_2xx": 80,
+  "replacement_failures": 0,
+  "edge_shed": 80,
+  "edge_shed_types": {
+    "urn:keyedge:problem:upstream-unavailable": 38,
+    "urn:keyedge:problem:overloaded": 42
+  },
+  "first_failure_s": 12.43,
+  "last_failure_s": 12.86,
+  "started_wall": "2026-11-23T11:49:13Z",
+  "replace_wall": "11:49:23Z",
+  "replacement_failure_samples": [],
+  "edge_shed_samples": [
+    {
+      "t_s": 12.43,
+      "wall": "11:49:25Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.42,
+      "wall": "11:49:25Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.4,
+      "wall": "11:49:25Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.53,
+      "wall": "11:49:25Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.5,
+      "wall": "11:49:25Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    }
+  ],
+  "tasks_replaced": true,
+  "old_and_new_overlapped": true,
+  "task_timeline": [
+    [
+      0.0,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      3.3,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      6.7,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      9.6,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      13.0,
+      [
+        "560ad896280d47849980bbda3939ed51",
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      16.6,
+      [
+        "560ad896280d47849980bbda3939ed51",
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      21.7,
+      [
+        "560ad896280d47849980bbda3939ed51",
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      25.8,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      30.1,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      33.4,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      36.5,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      39.6,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      43.1,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      46.8,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      50.1,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      52.6,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      55.0,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      57.4,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      59.4,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      62.0,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      64.5,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      67.0,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      69.7,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      72.4,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      75.1,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      77.5,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      80.2,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      82.6,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      85.0,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ],
+    [
+      87.3,
+      [
+        "648468764afa441986f5ed8fabb6719f"
+      ]
+    ]
+  ]
+}

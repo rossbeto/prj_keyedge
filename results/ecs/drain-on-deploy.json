@@ -1,0 +1,47 @@
+{
+  "experiment": "drain-on-deploy",
+  "target": "floci-ecs",
+  "runs": 6,
+  "verdict": "inconclusive",
+  "reason": "no replacement failures without drain: the emulated ALB stops routing to the old task as soon as the new one starts, so the old task's shutdown is never observed; failures with drain on: [0, 83, 0]",
+  "replacement_failures": {
+    "on": [
+      0,
+      83,
+      0
+    ],
+    "off": [
+      0,
+      0,
+      0
+    ]
+  },
+  "edge_shed": {
+    "on": [
+      0,
+      408,
+      84
+    ],
+    "off": [
+      12,
+      80,
+      0
+    ]
+  },
+  "requests_per_run": [
+    4501,
+    4501,
+    4501,
+    4501,
+    4501,
+    4501
+  ],
+  "files": [
+    "results/ecs/drain-on-deploy-off-1.json",
+    "results/ecs/drain-on-deploy-off-2.json",
+    "results/ecs/drain-on-deploy-off-3.json",
+    "results/ecs/drain-on-deploy-on-1.json",
+    "results/ecs/drain-on-deploy-on-2.json",
+    "results/ecs/drain-on-deploy-on-3.json"
+  ]
+}

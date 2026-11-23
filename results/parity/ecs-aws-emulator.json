@@ -1,0 +1,33 @@
+{
+  "target": "aws-emulator",
+  "emulator": "AWS Emulator 1.0.583 (container, Docker socket mounted, socket group, telemetry off)",
+  "date": "2026-11-23",
+  "level": "fallback (control plane only)",
+  "rows": [
+    {
+      "capability": "CDK stacks KeyedgeCluster, KeyedgeEdgeLb deploy and verify",
+      "result": "supported",
+      "evidence": "cdk-deploy.sh deploy aws-emulator; cdk-verify"
+    },
+    {
+      "capability": "CDK KeyedgeQuotesService (container DependsOn HEALTHY)",
+      "result": "not supported",
+      "evidence": "Template format error: Condition HEALTHY is not defined (P-03b, still on 1.0.583)"
+    },
+    {
+      "capability": "RunTask starts real containers",
+      "result": "not supported",
+      "evidence": "probe task (2 x alpine) reports RUNNING for task and containers; no Docker container created; socket writable from the emulator (Docker API answers)"
+    },
+    {
+      "capability": "StopTask",
+      "result": "partial",
+      "evidence": "returns lastStatus DEACTIVATING"
+    },
+    {
+      "capability": "ALB data plane",
+      "result": "not testable",
+      "evidence": "no task containers to route to"
+    }
+  ]
+}

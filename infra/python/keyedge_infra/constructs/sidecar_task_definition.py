@@ -19,7 +19,8 @@ class SidecarTaskDefinitionProps:
     edge_stop_timeout_seconds: int
     app_stop_timeout_seconds: int
     user: str
-    environment: dict[str, str]
+    edge_environment: dict[str, str]
+    app_environment: dict[str, str]
 
 
 def health(port: int, path: str) -> list[str]:
@@ -27,13 +28,15 @@ def health(port: int, path: str) -> list[str]:
     return ["CMD", "/app/application", "--health-check", f"http://127.0.0.1:{port}{path}"]
 
 
-def _common(image: str, p: SidecarTaskDefinitionProps, stop_seconds: int) -> dict[str, object]:
+def _common(
+    image: str, p: SidecarTaskDefinitionProps, stop_seconds: int, environment: dict[str, str]
+) -> dict[str, object]:
     return {
         "image": ecs.ContainerImage.from_registry(image),
         "readonly_root_filesystem": True,
         "user": p.user,
         "stop_timeout": Duration.seconds(stop_seconds),
-        "environment": p.environment,
+        "environment": environment,
         "logging": ecs.LogDrivers.aws_logs(stream_prefix=image[image.rfind("/") + 1 :].replace(":", "-")),
     }
 
@@ -44,7 +47,7 @@ class SidecarTaskDefinition(Construct):
         self.task = ecs.FargateTaskDefinition(self, "Task", cpu=p.cpu, memory_limit_mib=p.memory_mib)
         self.edge = self.task.add_container(
             "edge",
-            **_common(p.edge_image, p, p.edge_stop_timeout_seconds),  # type: ignore[arg-type]
+            **_common(p.edge_image, p, p.edge_stop_timeout_seconds, p.edge_environment),  # type: ignore[arg-type]
             port_mappings=[ecs.PortMapping(container_port=p.edge_port)],
             health_check=ecs.HealthCheck(
                 command=health(p.edge_port, "/health/readiness"),
@@ -56,7 +59,7 @@ class SidecarTaskDefinition(Construct):
         )
         self.app = self.task.add_container(
             p.app_name,
-            **_common(p.app_image, p, p.app_stop_timeout_seconds),  # type: ignore[arg-type]
+            **_common(p.app_image, p, p.app_stop_timeout_seconds, p.app_environment),  # type: ignore[arg-type]
             health_check=ecs.HealthCheck(
                 command=health(p.app_port, "/health"),
                 interval=Duration.seconds(10),

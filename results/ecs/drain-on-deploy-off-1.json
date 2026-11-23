@@ -1,0 +1,248 @@
+{
+  "experiment": "drain-on-deploy",
+  "label": "off-1",
+  "rate": 50,
+  "duration_s": 90,
+  "replace_at_s": 10,
+  "requests": 4501,
+  "status_counts": {
+    "200": 4489,
+    "503": 12
+  },
+  "non_2xx": 12,
+  "replacement_failures": 0,
+  "edge_shed": 12,
+  "edge_shed_types": {
+    "urn:keyedge:problem:upstream-unavailable": 7,
+    "urn:keyedge:problem:overloaded": 5
+  },
+  "first_failure_s": 11.68,
+  "last_failure_s": 11.96,
+  "started_wall": "2026-11-23T11:47:17Z",
+  "replace_wall": "11:47:27Z",
+  "replacement_failure_samples": [],
+  "edge_shed_samples": [
+    {
+      "t_s": 11.68,
+      "wall": "11:47:29Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 11.65,
+      "wall": "11:47:29Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 11.71,
+      "wall": "11:47:29Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 11.65,
+      "wall": "11:47:29Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 11.71,
+      "wall": "11:47:29Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:upstream-unavailable\",\"title\":\"A dependency is unavailable\",\"status\":503,\"detail\":\"pricing failed\",\"retryAfterSeconds\":1}"
+    }
+  ],
+  "tasks_replaced": true,
+  "old_and_new_overlapped": true,
+  "task_timeline": [
+    [
+      0.0,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      2.5,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      5.1,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      7.5,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      9.9,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      12.5,
+      [
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      14.8,
+      [
+        "560ad896280d47849980bbda3939ed51",
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      16.9,
+      [
+        "560ad896280d47849980bbda3939ed51",
+        "7a956f965ee94197ac7771783c44621a"
+      ]
+    ],
+    [
+      19.2,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      21.4,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      23.1,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      25.1,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      27.0,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      29.5,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      33.2,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      36.4,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      39.4,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      42.4,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      45.7,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      48.6,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      51.6,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      54.7,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      58.7,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      61.8,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      65.9,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      69.1,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      72.3,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      75.4,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      79.0,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      82.3,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ],
+    [
+      86.2,
+      [
+        "560ad896280d47849980bbda3939ed51"
+      ]
+    ]
+  ]
+}

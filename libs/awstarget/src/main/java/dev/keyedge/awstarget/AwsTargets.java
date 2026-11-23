@@ -18,7 +18,9 @@ import software.amazon.awssdk.regions.Region;
  * <ul>
  *   <li>{@code KEYEDGE_AWS_TARGET}: floci (default) | aws-emulator | aws
  *   <li>{@code KEYEDGE_AWS_ENDPOINT}: endpoint override (defaults: Floci {@code
- *       http://127.0.0.1:15566}, AWS Emulator {@code https://127.0.0.1:15297})
+ *       http://127.0.0.1:15566}, AWS Emulator {@code https://127.0.0.1:15297}); for Floci the SDK's
+ *       standard {@code AWS_ENDPOINT_URL} is honoured next — Floci injects it into the ECS tasks it
+ *       runs (Phase 014)
  *   <li>{@code KEYEDGE_AWS_EMULATOR_DIR}: AWS Emulator's per-run folder (default {@code
  *       ~/.aws/emulator/15297}) holding {@code emulator_credentials} and {@code ca.pem}
  *   <li>{@code KEYEDGE_AWS_CONNECT_HOST}: open connections to this host (see {@link AwsTarget})
@@ -46,7 +48,12 @@ public final class AwsTargets {
     Optional<String> connectHost = Optional.ofNullable(env.get("KEYEDGE_AWS_CONNECT_HOST"));
     Optional<URI> override = Optional.ofNullable(env.get("KEYEDGE_AWS_ENDPOINT")).map(URI::create);
     return switch (kind) {
-      case FLOCI -> floci(override.orElse(FLOCI_ENDPOINT), region);
+      case FLOCI ->
+          floci(
+              override
+                  .or(() -> Optional.ofNullable(env.get("AWS_ENDPOINT_URL")).map(URI::create))
+                  .orElse(FLOCI_ENDPOINT),
+              region);
       case AWS_EMULATOR -> {
         Path dir =
             Optional.ofNullable(env.get("KEYEDGE_AWS_EMULATOR_DIR"))

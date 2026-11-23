@@ -312,14 +312,21 @@ public class EdgeFactory {
       InstantSource clock,
       ConcurrencyLimiter limiter,
       io.opentelemetry.api.OpenTelemetry otel,
+      JsonMapper json,
       @Named(TaskExecutors.VIRTUAL) ExecutorService vt)
       throws MalformedURLException {
-    URI app = URI.create(cfg.appUrl());
+    var app =
+        new AppAddress(
+            cfg.appUrl(),
+            System.getenv("ECS_CONTAINER_METADATA_URI_V4"),
+            HttpClient.newHttpClient(),
+            json);
     Scheduler decisions = Schedulers.fromExecutorService(vt, "edge-decisions");
     return new EdgeFilter.EdgeRuntime(
         admit,
         usage,
-        ProxyHttpClient.create(app.toURL()),
+        // requests carry absolute URIs (EdgeFilter.toApp): the base URL is never used
+        ProxyHttpClient.create(URI.create("http://127.0.0.1").toURL()),
         decisions,
         gate,
         app,

@@ -23,6 +23,22 @@ while IFS=$'\t' read -r type physical; do
     AWS::SSM::Parameter) aws ssm get-parameter --name "$physical" > /dev/null 2>&1 ;;
     AWS::KMS::Key) aws kms describe-key --key-id "$physical" > /dev/null 2>&1 ;;
     AWS::KMS::Alias) aws kms list-aliases --query "Aliases[?AliasName=='$physical'] | [0].AliasName" --output text 2>/dev/null | grep -qx "$physical" ;;
+    # Phase 014: the ECS/ELB types exist as API objects; whether tasks really run is make ecs-smoke's job
+    AWS::ECS::Cluster)
+      aws ecs describe-clusters --clusters "$physical" --query 'clusters[0].status' --output text 2>/dev/null | grep -qx ACTIVE ;;
+    AWS::ECS::Service) # physical id: arn:aws:ecs:<region>:<account>:service/<cluster>/<name>
+      svc_cluster=$(echo "$physical" | awk -F/ '{print $(NF-1)}')
+      aws ecs describe-services --cluster "$svc_cluster" --services "$physical" --query 'services[0].status' --output text 2>/dev/null | grep -qx ACTIVE ;;
+    AWS::ECS::TaskDefinition)
+      aws ecs describe-task-definition --task-definition "$physical" --query 'taskDefinition.status' --output text 2>/dev/null | grep -qx ACTIVE ;;
+    AWS::ElasticLoadBalancingV2::LoadBalancer)
+      aws elbv2 describe-load-balancers --load-balancer-arns "$physical" > /dev/null 2>&1 ;;
+    AWS::ElasticLoadBalancingV2::TargetGroup)
+      aws elbv2 describe-target-groups --target-group-arns "$physical" > /dev/null 2>&1 ;;
+    AWS::ElasticLoadBalancingV2::Listener)
+      aws elbv2 describe-listeners --listener-arns "$physical" > /dev/null 2>&1 ;;
+    AWS::Logs::LogGroup)
+      aws logs describe-log-groups --log-group-name-prefix "$physical" --query "logGroups[?logGroupName=='$physical'] | [0].logGroupName" --output text 2>/dev/null | grep -qx "$physical" ;;
     *)
       if [ "${CDK_VERIFY_STRICT:-0}" = 1 ]; then false
       else echo "  (no describe check for $type: counted as unverified)" >&2; continue; fi ;;

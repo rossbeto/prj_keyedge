@@ -1,0 +1,10 @@
+{
+  "reflection": [
+    {
+      "type": "dev.keyedge.observe.JsonLineEncoder",
+      "methods": [
+        { "name": "<init>", "parameterTypes": [] }
+      ]
+    }
+  ]
+}

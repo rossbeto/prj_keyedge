@@ -50,6 +50,20 @@ service:
   appStopTimeoutSeconds: 20
   user: "10001"
   desiredCount: { local: 1, prodlike: 2 }
+  # Phase 014: what a task needs to find its neighbours (identical on every target; ADR 0018)
+  edgeAppUrl: "ecs:quotes:15081"        # the sidecar finds its app in the task metadata (awsvpc: own address)
+  bindHost: 0.0.0.0                     # in a task, the security group (edge port only) is the boundary
+  upstreams:
+    local:
+      pricing: http://upstream-sim:15201
+      stock: http://upstream-sim:15201
+      fx: http://upstream-sim:15201
+      token: http://upstream-sim:15201/oauth/token
+    prodlike:
+      pricing: https://pricing.example.com
+      stock: https://stock.example.com
+      fx: https://fx.example.com
+      token: https://auth.example.com/oauth/token
 cluster:
   vpcCidr: 10.40.0.0/16          # literal, so security-group rules can name it (cdk-nag cannot read tokens)
   maxAzs: 2

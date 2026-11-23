@@ -167,6 +167,27 @@ cdk-stub-demo: ## The stub trap on Floci: stubbing off fails loudly; on, CloudFo
 cdk-deploy-parity: ## Try every local stack on TARGET; results/parity/cdk-<target>.json (gaps are parity rows)
 	CDK_LANG=$(CDK_LANG) scripts/cdk-deploy.sh parity $(TARGET)
 
+## ---- Emulated ECS (Phase 014): CDK templates on Floci with real task containers --------------------
+.PHONY: ecs-up ecs-deploy ecs-status ecs-smoke ecs-experiments ecs-down
+ecs-up: ## Floci-ECS (Docker socket: opt-in, root-equivalent), data/config stacks, support services
+	CDK_LANG=$(CDK_LANG) scripts/ecs.sh up
+
+ecs-deploy: ## Cluster, ALB, quotes service from the CDK templates; waits for a running task
+	CDK_LANG=$(CDK_LANG) scripts/ecs.sh deploy
+
+ecs-status: ## Service counts, task containers and their addresses
+	scripts/ecs.sh status
+
+ecs-smoke: ## A signed quote request through the edge of the running ECS task
+	scripts/ecs.sh smoke
+
+ecs-experiments: ## task-start-order and drain-on-deploy (through the ALB on 127.0.0.1:15180); results/ecs/*.json
+	scripts/ecs.sh start-order
+	scripts/ecs.sh drain
+
+ecs-down: ## Delete the ECS stacks, stop the support services and Floci-ECS; counts leftover task containers
+	CDK_LANG=$(CDK_LANG) scripts/ecs.sh down
+
 ## ---- Secrets: SOPS with age + the emulator's KMS key (D-44) ---------------------------------------
 .PHONY: age-key secrets-encrypt secrets-rekey secrets-decrypt-check secrets-sync
 age-key: ## Create ~/.config/keyedge/age.key once (outside the repo)

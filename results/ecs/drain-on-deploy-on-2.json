@@ -1,0 +1,399 @@
+{
+  "experiment": "drain-on-deploy",
+  "label": "on-2",
+  "rate": 50,
+  "duration_s": 90,
+  "replace_at_s": 10,
+  "requests": 4501,
+  "status_counts": {
+    "200": 4010,
+    "503": 408,
+    "error:TimeoutError": 83
+  },
+  "non_2xx": 491,
+  "replacement_failures": 83,
+  "edge_shed": 408,
+  "edge_shed_types": {
+    "urn:keyedge:problem:overloaded": 408
+  },
+  "first_failure_s": 12.18,
+  "last_failure_s": 20.4,
+  "started_wall": "2026-11-23T11:43:15Z",
+  "replace_wall": "11:43:25Z",
+  "replacement_failure_samples": [
+    {
+      "t_s": 11.98,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.98,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.98,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.98,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.98,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.0,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.0,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 11.99,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.0,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.01,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.0,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.0,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    },
+    {
+      "t_s": 12.01,
+      "wall": "11:43:27Z",
+      "status": "error:TimeoutError",
+      "detail": "timed out"
+    }
+  ],
+  "edge_shed_samples": [
+    {
+      "t_s": 12.18,
+      "wall": "11:43:28Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.2,
+      "wall": "11:43:28Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.22,
+      "wall": "11:43:28Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.24,
+      "wall": "11:43:28Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    },
+    {
+      "t_s": 12.26,
+      "wall": "11:43:28Z",
+      "status": "503",
+      "detail": "server=- body={\"type\":\"urn:keyedge:problem:overloaded\",\"title\":\"The service is overloaded\",\"status\":503,\"retryAfterSeconds\":1}"
+    }
+  ],
+  "tasks_replaced": true,
+  "old_and_new_overlapped": true,
+  "task_timeline": [
+    [
+      0.0,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      1.9,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      3.9,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      6.0,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      8.3,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      10.9,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      14.1,
+      [
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      16.4,
+      [
+        "410d521bbe9a42828d9d157def711e81",
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      18.7,
+      [
+        "410d521bbe9a42828d9d157def711e81",
+        "a262a0802de54c95b1cbfcba4a102eae"
+      ]
+    ],
+    [
+      20.7,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      22.8,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      24.7,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      26.8,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      28.8,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      31.2,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      33.6,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      36.1,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      38.1,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      40.1,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      42.2,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      44.4,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      46.6,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      49.0,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      51.6,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      54.3,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      57.5,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      60.3,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      63.5,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      66.5,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      69.4,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      72.3,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      74.7,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      77.3,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      79.9,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      82.7,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ],
+    [
+      86.0,
+      [
+        "410d521bbe9a42828d9d157def711e81"
+      ]
+    ]
+  ]
+}

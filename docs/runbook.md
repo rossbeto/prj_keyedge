@@ -114,3 +114,13 @@ its own service API; a stub shows as `stubbed: <type>`. `make cdk-stub-demo` sho
 The KMS key in an emulator lives in memory: after a restart the file's KMS recipient points at a key that no
 longer exists. The age recipient still works: `make secrets-decrypt-check VIA=age`. Re-add the new KMS key:
 `make cdk-deploy && make secrets-rekey && make secrets-decrypt-check VIA=kms`.
+
+## 7. Emulated ECS: the task runs but the edge answers 500 "Connection refused" to the app
+
+Symptom (Phase 014): `make ecs-smoke` gets 500 `urn:keyedge:problem:internal`; the edge log shows
+`Connect Error: Connection refused: /10.40.x.y:15081`. The edge used the address from the task metadata, which on
+Floci is the *first container's* VPC address, not the app's. Check: `KEYEDGE_APP_URL` must be `ecs:quotes:15081`
+(not an IP), and the edge image must contain the Docker-id resolution (`make native S=edge`). Then:
+`docker run --rm --network keyedge_default alpine getent hosts <first 12 chars of the quotes DockerId>` resolves.
+Task containers left behind after a failed run: `make ecs-down` (never remove containers by name pattern; other
+projects share the daemon).

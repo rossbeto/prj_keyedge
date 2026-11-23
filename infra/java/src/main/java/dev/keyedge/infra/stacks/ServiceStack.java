@@ -42,13 +42,11 @@ public final class ServiceStack extends KeyedgeStack {
       Construct scope, String id, InfraConfig cfg, IStackSynthesizer synth, Props p) {
     super(scope, id, cfg, synth, p.name() + " service");
     var s = cfg.spec();
-    Map<String, String> env =
-        new java.util.TreeMap<>(
-            Map.of(
-                "KEYEDGE_CONTRACT_PATH",
-                cfg.ssmPath(),
-                "KEYEDGE_AWS_TARGET",
-                cfg.prodlike() ? "aws" : "floci"));
+    // every container: where the contract is, which AWS target, bind on the task address
+    Map<String, String> env = new java.util.TreeMap<>();
+    env.put("KEYEDGE_CONTRACT_PATH", cfg.ssmPath());
+    env.put("KEYEDGE_AWS_TARGET", cfg.prodlike() ? "aws" : "floci");
+    env.put("MICRONAUT_SERVER_HOST", s.str("service.bindHost"));
     TaskDefinition task = p.withSidecar() ? sidecar(cfg, p, env) : single(cfg, p, env);
     // Imported by name (spec), not referenced across stacks: no exports between stacks that deploy
     // in different phases, and ARNs that read the same in every template and in both CDK apps.
@@ -103,6 +101,16 @@ public final class ServiceStack extends KeyedgeStack {
 
   private TaskDefinition sidecar(InfraConfig cfg, Props p, Map<String, String> env) {
     var s = cfg.spec();
+    // the edge: its app (task metadata) and the control plane; the app: its upstreams (ADR 0018)
+    var edgeEnv = new java.util.TreeMap<>(env);
+    edgeEnv.put("KEYEDGE_APP_URL", s.str("service.edgeAppUrl"));
+    edgeEnv.put("KEYEDGE_KEYS_URL", s.str("service.verifyUrl"));
+    var appEnv = new java.util.TreeMap<>(env);
+    var upstreams = s.map("service.upstreams." + cfg.mode().key());
+    appEnv.put("KEYEDGE_QUOTES_PRICING_URL", upstreams.get("pricing"));
+    appEnv.put("KEYEDGE_QUOTES_STOCK_URL", upstreams.get("stock"));
+    appEnv.put("KEYEDGE_QUOTES_FX_URL", upstreams.get("fx"));
+    appEnv.put("KEYEDGE_QUOTES_TOKEN_URL", upstreams.get("token"));
     return new SidecarTaskDefinition(
             this,
             "Task",
@@ -117,7 +125,8 @@ public final class ServiceStack extends KeyedgeStack {
                 s.num("service.edgeStopTimeoutSeconds"),
                 s.num("service.appStopTimeoutSeconds"),
                 s.str("service.user"),
-                env))
+                edgeEnv,
+                appEnv))
         .task();
   }
 

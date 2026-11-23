@@ -28,11 +28,13 @@ class ServiceStack(KeyedgeStack):
     ) -> None:
         super().__init__(scope, stack_id, cfg, synth, f"{p.name} service")
         s = cfg.spec
+        # every container: where the contract is, which AWS target, bind on the task address
         env = dict(
             sorted(
-                {  # ordered like Java's TreeMap
+                {
                     "KEYEDGE_CONTRACT_PATH": cfg.ssm_path(),
                     "KEYEDGE_AWS_TARGET": "aws" if cfg.prodlike else "floci",
+                    "MICRONAUT_SERVER_HOST": s.str("service.bindHost"),
                 }.items()
             )
         )
@@ -74,6 +76,28 @@ class ServiceStack(KeyedgeStack):
 
     def _sidecar(self, p: ServiceProps, env: dict[str, str]) -> ecs.TaskDefinition:
         s = self.cfg.spec
+        # the edge: its app (task metadata) and the control plane; the app: its upstreams (ADR 0018)
+        edge_env = dict(
+            sorted(
+                {
+                    **env,
+                    "KEYEDGE_APP_URL": s.str("service.edgeAppUrl"),
+                    "KEYEDGE_KEYS_URL": s.str("service.verifyUrl"),
+                }.items()
+            )
+        )
+        upstreams = s.map(f"service.upstreams.{self.cfg.mode.key}")
+        app_env = dict(
+            sorted(
+                {
+                    **env,
+                    "KEYEDGE_QUOTES_PRICING_URL": upstreams["pricing"],
+                    "KEYEDGE_QUOTES_STOCK_URL": upstreams["stock"],
+                    "KEYEDGE_QUOTES_FX_URL": upstreams["fx"],
+                    "KEYEDGE_QUOTES_TOKEN_URL": upstreams["token"],
+                }.items()
+            )
+        )
         return SidecarTaskDefinition(
             self,
             "Task",
@@ -88,7 +112,8 @@ class ServiceStack(KeyedgeStack):
                 s.num("service.edgeStopTimeoutSeconds"),
                 s.num("service.appStopTimeoutSeconds"),
                 s.str("service.user"),
-                env,
+                edge_env,
+                app_env,
             ),
         ).task
 

@@ -59,8 +59,11 @@ Resources:
     Properties:
       ContainerDefinitions:
       - Environment:
+        - {Name: KEYEDGE_APP_URL, Value: 'ecs:quotes:15081'}
         - {Name: KEYEDGE_AWS_TARGET, Value: aws}
         - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/prodlike}
+        - {Name: KEYEDGE_KEYS_URL, Value: 'http://keys:15100'}
+        - {Name: MICRONAUT_SERVER_HOST, Value: 0.0.0.0}
         Essential: true
         HealthCheck:
           Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15080/health/readiness']
@@ -86,6 +89,11 @@ Resources:
         Environment:
         - {Name: KEYEDGE_AWS_TARGET, Value: aws}
         - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/prodlike}
+        - {Name: KEYEDGE_QUOTES_FX_URL, Value: 'https://fx.example.com'}
+        - {Name: KEYEDGE_QUOTES_PRICING_URL, Value: 'https://pricing.example.com'}
+        - {Name: KEYEDGE_QUOTES_STOCK_URL, Value: 'https://stock.example.com'}
+        - {Name: KEYEDGE_QUOTES_TOKEN_URL, Value: 'https://auth.example.com/oauth/token'}
+        - {Name: MICRONAUT_SERVER_HOST, Value: 0.0.0.0}
         Essential: true
         HealthCheck:
           Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15081/health']

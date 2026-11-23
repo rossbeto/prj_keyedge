@@ -80,6 +80,7 @@ Resources:
       - Environment:
         - {Name: KEYEDGE_AWS_TARGET, Value: floci}
         - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/local}
+        - {Name: MICRONAUT_SERVER_HOST, Value: 0.0.0.0}
         Essential: true
         HealthCheck:
           Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15100/health']

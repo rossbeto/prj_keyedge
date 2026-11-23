@@ -138,4 +138,14 @@ class AwsTargetsTest {
       assertThat(http).isNotNull();
     }
   }
+
+  @org.junit.jupiter.api.Test
+  void flociHonoursTheStandardEndpointVariableAfterOurs() {
+    var injected = Map.of("AWS_ENDPOINT_URL", "http://localhost.floci.io:4566");
+    assertThat(AwsTargets.resolve(injected, Path.of("/nonexistent")).endpoint())
+        .contains(java.net.URI.create("http://localhost.floci.io:4566"));
+    var both = Map.of("AWS_ENDPOINT_URL", "http://a:1", "KEYEDGE_AWS_ENDPOINT", "http://b:2");
+    assertThat(AwsTargets.resolve(both, Path.of("/nonexistent")).endpoint())
+        .contains(java.net.URI.create("http://b:2"));
+  }
 }

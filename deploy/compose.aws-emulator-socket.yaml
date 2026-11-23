@@ -1,0 +1,8 @@
+# AWS Emulator WITH the Docker socket (Phase 014: can its ECS run task containers?). Root-equivalent
+# access to this host's Docker daemon: opt-in only, via KEYEDGE_EMU_DOCKER_SOCKET=yes scripts/emu.sh up
+# aws-emulator (a warning is printed). The container keeps its non-root user; it joins the socket's group.
+services:
+  aws-emulator:
+    group_add: ["${KEYEDGE_DOCKER_GID:-998}"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

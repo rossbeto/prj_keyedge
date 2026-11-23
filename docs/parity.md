@@ -25,17 +25,17 @@ documented behaviour, not a test: no part of this lab uses a real AWS account.
 |---|---|---|---|---|
 | P-01 | Time until an expired TTL item is gone | 56 s | 4 s | up to days |
 
-## Observed differences (Phase 001; tests arrive in Phases 012–014)
+## Observed differences (Phase 001; measured again in Phases 012–014)
 
 | Id | Behaviour | Floci | AWS Emulator | AWS (documented) | Source |
 |---|---|---|---|---|---|
 | P-02 | CloudFormation `TargetGroupAttributes` (deregistration delay) applied | ignored (300 s default kept) | applied | applied | Phase 001 smoke |
 | P-03 | CloudFormation task definition with container-level `DependsOn` + `Condition` | deploys | **rejected**: "Condition START is not defined" | deploys | Phase 001 smoke; reported upstream (U-06) |
-| P-03b | The CDK `KeyedgeQuotesService` stack (app `DependsOn` edge `HEALTHY`) | deploys | **rejected**: "Condition HEALTHY is not defined" (same defect as P-03) | deploys | Phase 012 `make cdk-deploy-parity` |
-| P-04 | ECS: containers of one task share `localhost` | **no** (each on the compose network) | not run here (no Docker access; Phase 014 retests) | yes (awsvpc) | Phase 001 probe |
-| P-05 | ECS: container health checks run; `dependsOn: HEALTHY` waits | **no** (health UNKNOWN, dependent never starts) | compatibility check: FAILING trace | yes | Phase 001 probe + check |
-| P-06 | ECS runs task containers | yes (Docker siblings, `ecs` profile) | not without the Docker socket (Phase 014 retests with it) | yes | Phase 001 smoke |
-| P-07 | ALB forwards real HTTP to targets | unverified (LB DNS → 127.0.0.1:80) | unverified here; a corpus trace passes | yes | Phase 001; Phase 014 tests |
+| P-03b | The CDK `KeyedgeQuotesService` stack (app `DependsOn` edge `HEALTHY`) | deploys | **rejected**: "Condition HEALTHY is not defined" (same defect as P-03; still on 1.0.583) | deploys | Phase 012 `make cdk-deploy-parity`; Phase 014 |
+| P-04 | ECS: containers of one task share `localhost` | **no** (each a sibling container on the compose network; the task metadata IP belongs to the first container only) | n/a (runs no containers, P-06) | yes (awsvpc) | Phase 001 probe; Phase 014 (ADR 0018) |
+| P-05 | ECS: container health checks run; `dependsOn: HEALTHY` waits | **no** (health UNKNOWN; Floci 2.5 starts the dependent in START order, so it can start before the edge is ready) | compatibility check: FAILING trace | yes | Phase 001 probe; Phase 014 `results/ecs/task-start-order.json` |
+| P-06 | ECS runs task containers | yes (Docker siblings, `ecs` profile; the service reaches runningCount 1) | **no, even with the Docker socket**: tasks and containers report RUNNING, nothing runs | yes | Phase 001 smoke; Phase 014 probe |
+| P-07 | ALB forwards real HTTP to targets | **yes** (listener port inside the emulator container; quotes-check through it) | not testable (no task containers) | yes | Phase 014 `make ecs-smoke`, ALB on 127.0.0.1:15180 |
 | P-08 | GSI reads are eventually consistent | immediately consistent (base-table reads, Floci docs) | not measured | eventually consistent | Floci docs |
 | P-09 | KMS ciphertext usable outside the emulator | no (internal envelope, Floci docs) | not measured | n/a | Floci docs |
 | P-10 | IAM policies, KMS key policies, resource policies enforced | no (optional IAM enforcement off) | no (never denies its own keys) | yes | both emulators' docs; never claimed as tested |
@@ -48,7 +48,8 @@ emulators do not enforce (IAM, key policies) are checked for *shape* only (cdk-n
 
 The same bootstrap-less templates on both emulators, deployed with `aws cloudformation deploy` and verified by
 each service's describe API (`scripts/cdk-verify.sh`: DynamoDB table + TTL, Secrets Manager, SSM, KMS key and
-alias; other types are "deployed", not verified — ECS/ELB are exercised by running tasks in Phase 014).
+alias; since Phase 014 also ECS cluster/service/task definition, ELBv2 load balancer/target group/listener, log
+groups as API objects — whether tasks really run is `make ecs-smoke`'s job).
 
 | Stack | Floci | AWS Emulator |
 |---|---|---|
@@ -60,3 +61,23 @@ alias; other types are "deployed", not verified — ECS/ELB are exercised by run
 (`AWS::Grafana::Workspace`) reports `CREATE_COMPLETE`; `cdk-verify` (strict) fails naming the type. With
 stubbing off (keyedge's default) CloudFormation fails: "Resource type AWS::Grafana::Workspace is not supported by
 Floci."
+
+## ECS and friends (Phase 014: `make ecs-*`, `results/parity/ecs-<target>.json`, `results/ecs/`)
+
+The CDK templates, unchanged, as running tasks. Level reached: **Floci L1 + L3** (tasks run, smoke through the
+task's edge and through the ALB); **AWS Emulator: fallback** (control plane only).
+
+| Id | Behaviour | Floci 2.5.0 (Docker socket) | AWS Emulator 1.0.583 (Docker socket) | AWS (documented) |
+|---|---|---|---|---|
+| P-11 | Task metadata v4 `/task` | served; one task IP for all containers (held by the first only); `DockerId` correct | not checked (no containers) | served; one task IP shared by all |
+| P-12 | `AWS_ENDPOINT_URL` injected into task containers | yes (`http://localhost.floci.io:4566`) | n/a | no (real endpoints) |
+| P-13 | `awslogs` log driver | log streams `<prefix>/<container>/<task>` created | n/a | yes |
+| P-14 | Rolling replacement overlap (100/200 %) | yes: old and new run together 4–12 s | n/a | yes |
+| P-15 | Old target deregistration on replacement | ~0.1–0.2 s after the new task *starts*; no health gate, no observed delay | n/a | after the new target is healthy, then the deregistration delay |
+| P-16 | drain-on-deploy observable | **inconclusive**: 0 failures without drain in 3/3 runs (`results/ecs/drain-on-deploy.json`) | not testable | the reason drain exists |
+| P-17 | ECR push from the host daemon | registry API answers; needs daemon DNS + insecure-registry config (U-11) | not tried | yes |
+| P-18 | `StopTask` status | — | `DEACTIVATING` returned | `STOPPED` path |
+
+What the emulators cannot tell you here: Fargate capacity and Spot interruptions, real ALB timing and connection
+draining (P-15/P-16), health-gated start order (P-05), IAM enforcement, ENI limits. The drain design (D-29) rests
+on the compose-level test from Phase 007 and on AWS documentation, not on an emulator run.

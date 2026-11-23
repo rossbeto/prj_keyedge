@@ -84,6 +84,7 @@ Resources:
       - Environment:
         - {Name: KEYEDGE_AWS_TARGET, Value: aws}
         - {Name: KEYEDGE_CONTRACT_PATH, Value: /keyedge/prodlike}
+        - {Name: MICRONAUT_SERVER_HOST, Value: 0.0.0.0}
         Essential: true
         HealthCheck:
           Command: [CMD, /app/application, --health-check, 'http://127.0.0.1:15100/health']

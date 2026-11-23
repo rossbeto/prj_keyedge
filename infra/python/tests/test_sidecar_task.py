@@ -20,6 +20,10 @@ def test_sidecar_task_definition(mode: Mode) -> None:
         assert c["ReadonlyRootFilesystem"] is True
         assert c["User"] == "10001"
         assert "Secrets" not in c
-        assert {e["Name"] for e in c["Environment"]} == {"KEYEDGE_CONTRACT_PATH", "KEYEDGE_AWS_TARGET"}
+        names = {e["Name"] for e in c["Environment"]}
+        assert {"KEYEDGE_CONTRACT_PATH", "KEYEDGE_AWS_TARGET", "MICRONAUT_SERVER_HOST"} <= names
+        assert not any("SECRET" in n or "PASSWORD" in n for n in names)  # names only, never values
+    assert {"KEYEDGE_APP_URL", "KEYEDGE_KEYS_URL"} <= {e["Name"] for e in edge["Environment"]}
+    assert "KEYEDGE_QUOTES_TOKEN_URL" in {e["Name"] for e in app["Environment"]}
     assert "PortMappings" in edge and "HealthCheck" in edge
     assert "PortMappings" not in app

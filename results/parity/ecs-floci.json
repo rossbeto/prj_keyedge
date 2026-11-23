@@ -1,0 +1,78 @@
+{
+  "target": "floci-ecs",
+  "emulator": "floci/floci:2.5.0 (Docker socket, compose profile ecs)",
+  "date": "2026-11-23",
+  "level": "L1 + L3 (L2: local daemon images, ECR push needs daemon config: U-11)",
+  "rows": [
+    {
+      "capability": "CDK stacks KeyedgeCluster, KeyedgeEdgeLb, KeyedgeQuotesService deploy",
+      "result": "supported",
+      "evidence": "make ecs-deploy; cdk-verify ECS/ELB types"
+    },
+    {
+      "capability": "service reaches runningCount 1 with real containers",
+      "result": "supported",
+      "evidence": "make ecs-status: edge + quotes RUNNING, sibling containers floci-aws-ecs-<task>-<name>"
+    },
+    {
+      "capability": "containers of a task share localhost (awsvpc)",
+      "result": "not supported",
+      "evidence": "edge -> 127.0.0.1:15081 refused; app reached by its short Docker id (ADR 0018)"
+    },
+    {
+      "capability": "task metadata v4 (/task)",
+      "result": "partial",
+      "evidence": "served; every container reports the task IP 10.40.0.x, which only the first container holds; DockerId correct"
+    },
+    {
+      "capability": "container health checks run; dependsOn HEALTHY waits",
+      "result": "not supported",
+      "evidence": "results/ecs/task-start-order.json: ECS health UNKNOWN, no Docker health check; start order only"
+    },
+    {
+      "capability": "AWS_ENDPOINT_URL injected into tasks",
+      "result": "supported (emulator-specific)",
+      "evidence": "http://localhost.floci.io:4566; AwsTargets honours it"
+    },
+    {
+      "capability": "awslogs log driver -> CloudWatch Logs streams",
+      "result": "supported",
+      "evidence": "log streams <group>/<prefix>/<container>/<task> created"
+    },
+    {
+      "capability": "task ports published on the host",
+      "result": "no host ports (good: nothing on 0.0.0.0)",
+      "evidence": "docker ps: 15080/tcp unpublished"
+    },
+    {
+      "capability": "ALB data plane routes to task targets",
+      "result": "supported",
+      "evidence": "listener :80 inside floci-ecs (published 127.0.0.1:15180); quotes-check through the ALB OK"
+    },
+    {
+      "capability": "target registration / health",
+      "result": "partial",
+      "evidence": "target registered on task start, reported healthy; old target deregistered ~0.1-0.2 s after the new task starts (no health gate, no deregistration delay observed)"
+    },
+    {
+      "capability": "rolling replacement with overlap (min 100 / max 200 %)",
+      "result": "supported",
+      "evidence": "results/ecs/drain-on-deploy-*.json task_timeline: 2 tasks for 4-12 s"
+    },
+    {
+      "capability": "drain-on-deploy observable",
+      "result": "inconclusive",
+      "evidence": "results/ecs/drain-on-deploy.json: 0 replacement failures without drain in 3/3 runs"
+    },
+    {
+      "capability": "ECR push from the host daemon (L2)",
+      "result": "not reached",
+      "evidence": "registry API answers (/v2/ 200) but the daemon cannot resolve *.localhost and wants HTTPS (U-11)"
+    },
+    {
+      "capability": "image pull for local images",
+      "result": "supported (falls back)",
+      "evidence": "pull from Docker Hub fails, cached local image used (Floci log)"
+    }
+  ]
+}

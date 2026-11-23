@@ -37,7 +37,8 @@ public final class SidecarTaskDefinition extends Construct {
       int edgeStopTimeoutSeconds,
       int appStopTimeoutSeconds,
       String user,
-      Map<String, String> environment) {}
+      Map<String, String> edgeEnvironment,
+      Map<String, String> appEnvironment) {}
 
   public SidecarTaskDefinition(Construct scope, String id, Props p) {
     super(scope, id);
@@ -49,7 +50,7 @@ public final class SidecarTaskDefinition extends Construct {
     edge =
         task.addContainer(
             "edge",
-            container(p.edgeImage(), p, p.edgeStopTimeoutSeconds())
+            container(p.edgeImage(), p, p.edgeStopTimeoutSeconds(), p.edgeEnvironment())
                 .portMappings(List.of(PortMapping.builder().containerPort(p.edgePort()).build()))
                 .healthCheck(
                     HealthCheck.builder()
@@ -63,7 +64,7 @@ public final class SidecarTaskDefinition extends Construct {
     app =
         task.addContainer(
             p.appName(),
-            container(p.appImage(), p, p.appStopTimeoutSeconds())
+            container(p.appImage(), p, p.appStopTimeoutSeconds(), p.appEnvironment())
                 .healthCheck(
                     HealthCheck.builder()
                         .command(health(p.appPort(), "/health"))
@@ -80,13 +81,13 @@ public final class SidecarTaskDefinition extends Construct {
   }
 
   private static ContainerDefinitionOptions.Builder container(
-      String image, Props p, int stopSeconds) {
+      String image, Props p, int stopSeconds, Map<String, String> environment) {
     return ContainerDefinitionOptions.builder()
         .image(ContainerImage.fromRegistry(image))
         .readonlyRootFilesystem(true)
         .user(p.user())
         .stopTimeout(Duration.seconds(stopSeconds))
-        .environment(p.environment())
+        .environment(environment)
         .logging(
             LogDrivers.awsLogs(
                 software.amazon.awscdk.services.ecs.AwsLogDriverProps.builder()

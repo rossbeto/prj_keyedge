@@ -57,7 +57,7 @@ public class EdgeFilter implements HttpServerFilter {
   private final ProxyHttpClient proxy;
   private final Scheduler decisions;
   private final Gate gate;
-  private final URI app;
+  private final java.util.function.Supplier<URI> app;
   private final byte[] principalKey;
   private final InstantSource clock;
   private final ConcurrencyLimiter limiter;
@@ -197,7 +197,10 @@ public class EdgeFilter implements HttpServerFilter {
     MutableHttpRequest<?> out =
         request
             .mutate()
-            .uri(b -> b.scheme(app.getScheme()).host(app.getHost()).port(app.getPort()));
+            .uri(b -> {
+              URI to = app.get(); // resolved lazily (ECS task metadata), then cached
+              b.scheme(to.getScheme()).host(to.getHost()).port(to.getPort());
+            });
     List<String> strip =
         out.getHeaders().names().stream()
             .filter(n ->
@@ -233,7 +236,7 @@ public class EdgeFilter implements HttpServerFilter {
       ProxyHttpClient proxy,
       Scheduler decisions,
       Gate gate,
-      URI app,
+      java.util.function.Supplier<URI> app,
       byte[] principalKey,
       InstantSource clock,
       Duration drainTimeout,
