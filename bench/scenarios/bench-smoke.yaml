@@ -6,7 +6,7 @@ path: /v1/quotes/sku-7?qty=2&currency=USD
 simScenario: healthy
 rates: [20]
 stepSeconds: 10
-warmupSeconds: 0
+warmupSeconds: 5
 repetitions: 1
 slo: { p99Ms: 1000, maxErrorRatio: 0.01 }
 model: { latencyMs: 40, concurrencyCap: 500, sutCpus: 4, cpuMsPerRequest: 4 }

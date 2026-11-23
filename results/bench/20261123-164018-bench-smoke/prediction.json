@@ -1,0 +1,12 @@
+{
+  "scenario" : "bench-smoke",
+  "runId" : "20261123-164018-bench-smoke",
+  "writtenAt" : "2026-11-23T16:40:19.594171590Z",
+  "statement" : "The harness offers 20 req/s for 10 s through the edge with no dropped iterations. Model: W=40 ms, cap 500 in flight -> 12500 rps; 4.0 CPUs at 4.00 ms CPU/request -> 1000 rps; predicted saturation 1000 rps (CPU-bound).",
+  "numbers" : {
+    "cap_bound_rps" : 12500.0,
+    "cpu_bound_rps" : 1000.0,
+    "in_flight@20" : 0.8,
+    "predicted_saturation_rps" : 1000.0
+  }
+}

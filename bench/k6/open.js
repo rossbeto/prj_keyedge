@@ -26,8 +26,10 @@ export const options = {
       rate: RATE,
       timeUnit: '1s',
       duration: __ENV.DURATION || '10s',
-      preAllocatedVUs: Math.min(1500, Math.max(20, Math.ceil(RATE / 4))),
-      maxVUs: Math.max(100, RATE * 2),
+      // Little's Law: VUs in use = rate x latency; one VU per req/s covers 1 s latencies without growing the pool
+      // mid-step (growing it is what drops iterations)
+      preAllocatedVUs: Math.max(50, RATE),
+      maxVUs: Math.max(200, RATE * 4),
     },
   },
   summaryTrendStats: ['p(50)', 'p(90)', 'p(99)', 'max'],
