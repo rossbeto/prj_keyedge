@@ -29,5 +29,8 @@ public record EdgeConfig(
      * "METHOD /path-prefix scope", e.g. "GET /v1/quotes quotes:read". Unlisted routes are not
      * exposed.
      */
-    @Bindable(defaultValue = "GET /v1/quotes quotes:read,GET /v1/quotes-reactive quotes:read")
+    @Bindable(
+            defaultValue =
+                "GET /v1/quotes quotes:read,GET /v1/quotes-reactive quotes:read,"
+                    + "POST /v1/quotes quotes:reserve")
         List<String> routes) {}

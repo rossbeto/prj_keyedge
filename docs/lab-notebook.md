@@ -153,3 +153,44 @@ goodput 27/s fixed (p99 774 ms: 200 in flight queue behind 16 workers, Little's 
 SLO; gradient kept latency low. The edge defaults to gradient.
 **Interview line.** "A fixed limit of 200 looked generous until capacity fell: Little's law turned it into a
 750 ms queue and almost nothing met the SLO. The adaptive limit shrank to what the app could serve."
+
+## fanout-models (Phase 009)
+
+**Hypothesis.** At 10 req/s the structured, futures and Reactor versions of the quote have the same p50 (within
+10 %, about the slowest upstream); at 300 req/s all three keep up.
+**Method.** The real quotes adapters (JDK `HttpClient`, guards, token provider) against fake upstreams (pricing
+20 ms, stock 10 ms, fx 5 ms); open-model load 5 s per row. Functional size only: load curves are Phase 015.
+**Result** ([results/labs/fanout-models.json](../results/labs/fanout-models.json)): **confirmed** — p50 at
+10 req/s within 5.7 % (23.0–24.3 ms); at 300 req/s no errors and no model ahead (p50 25–28 ms; tails noisy on a
+shared host). Discussion in [virtual-threads-vs-reactor.md](virtual-threads-vs-reactor.md#5-evidence).
+
+## cancel-on-failure (Phase 009)
+
+**Hypothesis.** When pricing fails at 50 ms and stock takes 2 s, the structured fan-out returns in < 150 ms and
+the stock calls are really cancelled.
+**Method.** stock is a raw-socket server that counts clients hanging up before it answers (the independent
+measurement); 5 quotes per adapter; plus the deliberately naive `CompletableFuture` version (lab/pitfalls).
+**Result** ([results/labs/cancel-on-failure.json](../results/labs/cancel-on-failure.json)): **confirmed** —
+structured and futures-with-`submit` return in 64–72 ms (p50) and close all 5 stock connections; the naive
+version returns just as fast (58 ms) **but all 5 stock calls run to completion**: "cancelled" on the client, still working on
+the server.
+**Interview line.** "Both versions looked fast. Only the server's own count showed that the naive one kept every
+slow call running."
+
+## retry-only-idempotent (Phase 009)
+
+**Hypothesis.** With stock answering 503, 100 reservations (POST) reach it exactly 100 times; 100 GETs are
+retried at most once each and within the retry budget.
+**Result** ([results/labs/retry-only-idempotent.json](../results/labs/retry-only-idempotent.json)):
+**confirmed** — POST attempts 100; GET attempts 129: the budget (10 + 10 % of 200 calls = 30) granted 29 retries
+and then said no, before the 2-attempt limit would have allowed 100.
+
+## token-stampede (Phase 009)
+
+**Hypothesis.** 200 concurrent calls at token expiry cause exactly one token request.
+**Method.** Token lifetime 5 s, issue latency 200 ms, refresh-ahead at 80 %; 200 callers at t = 4.9 s (due for
+refresh, still valid) and again after the token has expired.
+**Result** ([results/labs/token-stampede.json](../results/labs/token-stampede.json)): **confirmed** — 1 and 1
+(server-side count). Before that, **jcstress found a double fetch** in the first implementation: a caller that
+saw "no token" just before the first fetch completed started a second one. Fixed by reusing a just-completed
+fetch whose token is still current.

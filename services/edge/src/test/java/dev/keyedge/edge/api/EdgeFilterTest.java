@@ -124,7 +124,8 @@ class EdgeFilterTest implements TestPropertyProvider {
             .bearerAuth(KeyFormat.format(KeyEnvironment.TEST, id, KeySecret.ofBytes(other))),
         401);
     problem(HttpRequest.GET("/v1/not-exposed").bearerAuth(apiKey), 404);
-    problem(HttpRequest.POST("/v1/quotes/sku-1", "{}").bearerAuth(apiKey), 404);
+    problem(
+        HttpRequest.POST("/v1/quotes/sku-1", "{}").bearerAuth(apiKey), 403); // no quotes:reserve
     assertThat(app.calls.get()).isEqualTo(before);
   }
 

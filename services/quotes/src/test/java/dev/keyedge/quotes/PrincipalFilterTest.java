@@ -26,7 +26,24 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 @MicronautTest
-class PrincipalFilterTest {
+@org.junit.jupiter.api.TestInstance(org.junit.jupiter.api.TestInstance.Lifecycle.PER_CLASS)
+class PrincipalFilterTest implements io.micronaut.test.support.TestPropertyProvider {
+  private final FakeUpstreams up = new FakeUpstreams();
+
+  @Override
+  public Map<String, String> getProperties() {
+    return Map.of(
+        "keyedge.quotes.pricing-url", up.url(),
+        "keyedge.quotes.stock-url", up.url(),
+        "keyedge.quotes.fx-url", up.url(),
+        "keyedge.quotes.token-url", up.url() + "/oauth/token");
+  }
+
+  @org.junit.jupiter.api.AfterAll
+  void stop() {
+    up.close();
+  }
+
   static final byte[] KEY = testKey();
 
   /** A fixed 32-byte test key (a pattern, not a secret). */

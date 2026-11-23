@@ -4,7 +4,7 @@
 > *how do you issue, store and rotate API keys safely, and how does a small sidecar next to every
 > service authenticate, rate-limit and protect it without becoming the outage itself?*
 
-**Status:** Phase 008 of 16: libraries, the two-emulator AWS switch ([parity](docs/parity.md)), the keys control plane, a local issuer, the upstream simulator and the **edge sidecar** in front of a demo app — `make up && make demo` runs the whole path on either emulator. The sidecar survives a control-plane outage (breaker, fail-static cache, adaptive concurrency limit): `make resilience-check`.
+**Status:** Phase 009 of 16: libraries, the two-emulator AWS switch ([parity](docs/parity.md)), the keys control plane, a local issuer, the upstream simulator and the **edge sidecar** in front of a demo app — `make up && make demo` runs the whole path on either emulator. The sidecar survives a control-plane outage (breaker, fail-static cache, adaptive concurrency limit): `make resilience-check`. The quote use case runs three ways — structured concurrency, futures on virtual threads and a Reactor twin — with the reasoning and measurements in [virtual-threads-vs-reactor.md](docs/virtual-threads-vs-reactor.md): `make quotes-check`.
 
 **Revocation latency is bounded, not zero:** a revoked key keeps working at a sidecar until its cached verdict expires
 (TTL hint, 60 s), and while the control plane is down up to TTL + stale window (5 min) under the default fail-static

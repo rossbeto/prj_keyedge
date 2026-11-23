@@ -1,0 +1,9 @@
+name: fx-down
+seed: 23
+endpoints:
+  pricing: { latency: { kind: uniform, minMs: 10, maxMs: 30 } }
+  stock:   { latency: { kind: uniform, minMs: 5, maxMs: 20 } }
+  fx:
+    latency: { kind: fixed, ms: 5 }
+    errors:  [ { status: 503, rate: 1.0 } ]
+  reservations: { latency: { kind: fixed, ms: 20 } }

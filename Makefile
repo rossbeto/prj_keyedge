@@ -88,7 +88,7 @@ emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 ## ---- Lab notebook (experiments: hypothesis -> measurement -> verdict) --------------------
 .PHONY: lab
 RUN_ID := $(shell date +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null)
-lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed
+lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed|fanout-models|cancel-on-failure|retry-only-idempotent|token-stampede
 	@case "$(E)" in \
 	  naive-bucket-race) \
 	    $(GRADLE) :libs:ratelimit:jcstress -Pjcstress.mode=$(or $(MODE),quick) -Pjcstress.tests='.*Bucket.*|.*Gcra.*|.*Permit.*' > build/jcstress-naive-bucket-race.log 2>&1 || true; \
@@ -103,6 +103,10 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-fli
 	  control-plane-outage) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*ResilienceExperiments.controlPlaneOutage' ;; \
 	  breaker-vs-none) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*ResilienceExperiments.breakerVsNone' ;; \
 	  adaptive-vs-fixed) $(GRADLE) :services:edge:testExperiment --rerun-tasks --tests '*AdaptiveLimitExperiments.adaptiveVsFixed' ;; \
+	  fanout-models) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*FanoutExperiments.fanoutModels' ;; \
+	  cancel-on-failure) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*FanoutExperiments.cancelOnFailure' ;; \
+	  retry-only-idempotent) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.retryOnlyIdempotent' ;; \
+	  token-stampede) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.tokenStampede' ;; \
 	  *) echo "unknown experiment '$(E)'"; exit 2 ;; \
 	esac
 
@@ -158,7 +162,10 @@ chaos-reset: ## Healthy scenario and zeroed counters; Toxiproxy toxics cleared b
 	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=healthy" > /dev/null && curl -sf -X POST http://127.0.0.1:15201/__reset && echo
 	scripts/toxics.sh clear
 
-.PHONY: demo calibrate resilience-check
+.PHONY: demo calibrate resilience-check quotes-check
+quotes-check: ## Quotes under simulator scenarios: blocking == Reactor twin, fx-down -> FX_UNAVAILABLE warning
+	uv run -q python scripts/quotes_check.py
+
 resilience-check: ## Control plane down under the running stack: warm key served stale, cold key 503 (~70 s)
 	( . <(scripts/aws-env.sh $(TARGET)) && uv run -q --with boto3 python scripts/resilience_check.py )
 

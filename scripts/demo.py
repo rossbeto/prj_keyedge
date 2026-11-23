@@ -60,10 +60,10 @@ def main() -> int:
     print(f"1. partner token from the issuer: HTTP {status}")
     auth = {"Authorization": "Bearer " + tok["accessToken"]}
     idem = "demo-" + uuid.uuid4().hex[:8]
-    status, headers, created = call("POST", KEYS + "/v1/keys", {"name": "demo", "scopes": ["quotes:read"]}, {**auth, "Idempotency-Key": idem})
+    status, headers, created = call("POST", KEYS + "/v1/keys", {"name": "demo", "scopes": ["quotes:read", "quotes:reserve"]}, {**auth, "Idempotency-Key": idem})
     key = created["key"]
     print(f"2. create key: HTTP {status}, Location {headers.get('Location')}, ETag {headers.get('ETag')}, key {key[:34]}… ({len(key)} chars, shown once)")
-    status, headers, replay = call("POST", KEYS + "/v1/keys", {"name": "demo", "scopes": ["quotes:read"]}, {**auth, "Idempotency-Key": idem})
+    status, headers, replay = call("POST", KEYS + "/v1/keys", {"name": "demo", "scopes": ["quotes:read", "quotes:reserve"]}, {**auth, "Idempotency-Key": idem})
     print(f"3. same Idempotency-Key again: HTTP {status}, Idempotent-Replayed={headers.get('Idempotent-Replayed')}, secret returned: {'key' in replay}")
     credential = base64.b64decode(json.loads(boto3.client("secretsmanager").get_secret_value(SecretId="keyedge/callers")["SecretString"])["edge-quotes"])
     key_id, secret = key[8:34], key[35:78]
@@ -76,11 +76,17 @@ def main() -> int:
     edge_ok = True
     if os.environ.get("EDGE_URL", "http://127.0.0.1:15080"):
         edge = os.environ.get("EDGE_URL", "http://127.0.0.1:15080")
-        status, _, quote = call("GET", edge + "/v1/quotes/sku-1", None, {"Authorization": "Bearer " + key})
+        status, _, quote = call("GET", edge + "/v1/quotes/sku-1?qty=3&currency=USD", None, {"Authorization": "Bearer " + key})
         print(f"7. through the edge sidecar to quotes: HTTP {status}, tenant {quote.get('tenant')} (the app saw a signed principal, not the key)")
+        print(f"   quote: {quote.get('quantity')} x {quote.get('unitPriceCents')} = {quote.get('totalCents')} {quote.get('currency')}, available {quote.get('available')}, warnings {quote.get('warnings')}")
+        r_status, _, twin = call("GET", edge + "/v1/quotes-reactive/sku-1?qty=3&currency=USD", None, {"Authorization": "Bearer " + key})
+        print(f"   Reactor twin: HTTP {r_status}, same body: {twin == quote}")
+        s_status, _, reservation = call("POST", edge + "/v1/quotes/sku-1/reserve?qty=1", {}, {"Authorization": "Bearer " + key})
+        print(f"   reserve (non-idempotent POST, never retried): HTTP {s_status} {reservation.get('reservation', '')[:2]}…")
+        edge_ok = r_status == 200 and twin == quote and s_status == 201
         status, _, problem = call("GET", edge + "/v1/quotes/sku-1", None, {"Authorization": "Bearer " + key[:-1] + ("A" if key[-1] != "A" else "B")})
         print(f"8. one character changed: HTTP {status} {problem.get('type')} (rejected by the checksum, no call to keys)")
-        edge_ok = quote.get("tenant") == "acme" and status == 401
+        edge_ok = edge_ok and quote.get("tenant") == "acme" and status == 401
     status, _, revoked = call("POST", KEYS + f"/v1/keys/{key_id}/revoke", {}, auth)
     _, _, verdict = signed(KEYS, "/internal/v1/verify", {"keyId": key_id, "secret": secret}, credential)
     print(f"9. revoke: HTTP {status}, status {revoked.get('status')}; verify now: {verdict.get('verdict')}")
