@@ -2,6 +2,7 @@
 # release_check.sh fails on crafted bad trees: dirty tree, tag != version, missing changelog entry,
 # a TODO(release) marker; and passes on a good one. Works in a throwaway git repo under mktemp.
 set -euo pipefail
+unset RELEASE_ALLOW_DIRTY RELEASE_ONLY RELEASE_ROOT # a caller's settings (release-check runs this test) must not leak in
 here=$(cd "$(dirname "$0")/../.." && pwd)
 work=$(mktemp -d)
 trap 'rm -r -- "$work"' EXIT
