@@ -6,10 +6,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Small static SVG charts for docs/media (no dependency). Palette: the first three categorical
- * slots of the reference palette (blue, orange, aqua: validated for all pairs, light and dark),
- * switched by {@code prefers-color-scheme} inside the SVG. One y-axis, recessive grid, 2 px lines,
- * ≥ 8 px markers, legend plus direct labels at line ends, a {@code <title>} tooltip on every mark.
+ * Static SVG charts for docs/media: 3 validated palette slots (light + dark), one y-axis, 2 px
+ * lines, ≥ 8 px markers, legend + direct labels, a {@code <title>} tooltip on every mark.
  */
 public final class SvgChart {
   static final int W = 720;
@@ -45,6 +43,8 @@ public final class SvgChart {
             series.values().stream().flatMap(List::stream).mapToDouble(Point::y).max().orElse(1));
     StringBuilder b = open(title);
     axes(b, xLabel, yLabel, 0, xMax, yMax, true);
+    List<double[]> ends = new ArrayList<>();
+    List<String> endNames = new ArrayList<>();
     for (var e : series.entrySet()) {
       int slot = slot(e.getKey(), colourKeys);
       boolean dashed = e.getKey().endsWith("p99");
@@ -81,18 +81,37 @@ public final class SvgChart {
             .append("</title></circle>\n");
       }
       if (!pts.isEmpty()) {
-        Point last = pts.getLast();
-        b.append("<text class=\"t2\" x=\"")
-            .append(fmt(x(last.x(), xMax) + 8))
-            .append("\" y=\"")
-            .append(fmt(y(last.y(), yMax) + 4))
-            .append("\">")
-            .append(esc(e.getKey()))
-            .append("</text>\n");
+        ends.add(new double[] {x(pts.getLast().x(), xMax) + 8, y(pts.getLast().y(), yMax) + 4});
+        endNames.add(e.getKey());
       }
     }
+    directLabels(b, ends, endNames);
     legend(b, colourKeys);
     return close(b);
+  }
+
+  /**
+   * End-of-line labels, pushed apart vertically (≥ 14 px) so close lines never print over each
+   * other.
+   */
+  private static void directLabels(StringBuilder b, List<double[]> ends, List<String> names) {
+    List<Integer> order =
+        java.util.stream.IntStream.range(0, ends.size())
+            .boxed()
+            .sorted(java.util.Comparator.comparingDouble(i -> ends.get(i)[1]))
+            .toList();
+    double last = Double.NEGATIVE_INFINITY;
+    for (int i : order) {
+      double yy = Math.max(ends.get(i)[1], last + 14);
+      last = yy;
+      b.append("<text class=\"t2\" x=\"")
+          .append(fmt(ends.get(i)[0]))
+          .append("\" y=\"")
+          .append(fmt(yy))
+          .append("\">")
+          .append(esc(names.get(i)))
+          .append("</text>\n");
+    }
   }
 
   /** Grouped bars: for each group (x category) one bar per series, on one y-axis. */
@@ -145,7 +164,7 @@ public final class SvgChart {
           .append("</text>\n");
       g++;
     }
-    legend(b, seriesNames);
+    legend(b, seriesNames.size() > 1 ? seriesNames : List.of()); // one series: the title names it
     return close(b);
   }
 

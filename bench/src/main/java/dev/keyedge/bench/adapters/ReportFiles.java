@@ -129,6 +129,22 @@ public final class ReportFiles {
           r.scenario() + ": p99 at " + rates.getFirst() + " rps by edge size", "p99 ms", groups);
     }
     Map<String, List<Point>> series = new LinkedHashMap<>();
+    if (r.scenario().equals("vt-vs-reactor")) { // the verdict turned on errors, not latency
+      for (String v : variants) {
+        List<Point> pts = new ArrayList<>();
+        for (int rate : rates) {
+          Steps.median(r.steps(), v, rate, s -> s.errorRatio() * 100)
+              .ifPresent(y -> pts.add(new Point(rate, round(y))));
+        }
+        series.put(v, pts);
+      }
+      return SvgChart.lines(
+          r.scenario() + ": errors vs offered load (median of 3)",
+          "offered load (req/s)",
+          "% errors",
+          series,
+          variants);
+    }
     for (String v : variants) {
       for (String q : List.of("p50", "p99")) {
         List<Point> pts = new ArrayList<>();
