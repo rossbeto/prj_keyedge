@@ -68,12 +68,21 @@ public final class HostEnvironment implements Environment {
   @Override
   public BenchResult.Git git() {
     String sha = probe(() -> Proc.run("git", "rev-parse", "--short", "HEAD"));
-    // results/ and docs/ are written by the bench itself
-    String status =
-        probe(() ->
-            Proc.run(
-                "git", "status", "--porcelain", "--", ".", ":!results", ":!docs", ":!README.md"));
-    return new BenchResult.Git(sha, !status.isEmpty());
+    return new BenchResult.Git(sha, !dirtyFiles().isEmpty());
+  }
+
+  @Override
+  public List<String> dirtyFiles() {
+    // results/, docs/ and README.md are written by the bench itself
+    // not probe(): a clean tree is an empty answer, which probe() would turn into "unknown"
+    try {
+      return Proc.run(
+              "git", "status", "--porcelain", "--", ".", ":!results", ":!docs", ":!README.md")
+          .lines()
+          .toList();
+    } catch (RuntimeException e) {
+      return List.of("(git status failed: " + e.getMessage() + ")");
+    }
   }
 
   private static long memTotalMb() {

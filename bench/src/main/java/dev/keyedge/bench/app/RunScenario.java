@@ -59,6 +59,9 @@ public final class RunScenario {
     List<String> notes = new ArrayList<>();
     stack.competingBuilds().forEach(b -> notes.add("Gradle running during the bench: " + b));
     var git = env.git();
+    if (git.dirty()) {
+      notes.add("uncommitted: " + String.join(", ", env.dirtyFiles()));
+    }
     var fingerprint = env.fingerprint();
     if (!fingerprint.complete()) {
       notes.add("emulator version unknown: run flagged");
