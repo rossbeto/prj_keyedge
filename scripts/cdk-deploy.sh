@@ -39,7 +39,7 @@ case "$cmd" in
   parity)
     mkdir -p results/parity
     all=$(python3 -c "import json;m=json.load(open('$out/manifest.json'));print(' '.join(k for k,v in m['artifacts'].items() if v['type']=='aws:cloudformation:stack'))")
-    report="results/parity/cdk-$target.json"; echo "[" > "$report"; first=1
+    report="results/parity/cdk-$target-$lang.json"; echo "[" > "$report"; first=1
     for s in $all; do
       if log=$(deploy_one "$s" 2>&1); then status=ok; else status=failed; fi
       detail=$(echo "$log" | tail -3 | tr '"\n' "' " | cut -c1-400)

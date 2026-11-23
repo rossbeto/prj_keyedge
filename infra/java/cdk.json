@@ -1,0 +1,5 @@
+{
+  "app": "../../gradlew -q -p ../.. :infra:java:run",
+  "output": "../out/java/cli",
+  "context": {"mode": "local", "env": "local", "aws:cdk:version-reporting": false, "aws:cdk:enable-path-metadata": false}
+}

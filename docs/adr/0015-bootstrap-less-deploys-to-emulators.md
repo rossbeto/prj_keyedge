@@ -14,7 +14,7 @@ type reports `CREATE_COMPLETE` and creates nothing.
 - Every deployed stack is checked by **`scripts/cdk-verify.sh`**: `DescribeStackResources`, then the service's own
   API per type (DynamoDB table and TTL, Secrets Manager, SSM, KMS key and alias). A resource CloudFormation
   lists but the service does not know fails the deploy, naming the type. Floci's stubbing stays off.
-- `make cdk-deploy-parity` tries every stack on a target and writes `results/parity/cdk-<target>.json`: an
+- `make cdk-deploy-parity` tries every stack on a target and writes `results/parity/cdk-<target>-<lang>.json`: an
   unsupported stack is a parity row, not a red build.
 - Real AWS is refused by the script (`KEYEDGE_ALLOW_REAL_AWS=yes` and a bootstrapped account are the user's job).
 

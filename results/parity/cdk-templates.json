@@ -1,0 +1,110 @@
+[
+  {
+    "stack": "KeyedgeCi",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeCluster",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeConfig",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeData",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeEdgeLb",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeKeysService",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeKms",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeObservability",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeQuotesService",
+    "mode": "local",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeCi",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeCluster",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeConfig",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeData",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeEdgeLb",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeKeysService",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeKms",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeObservability",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  },
+  {
+    "stack": "KeyedgeQuotesService",
+    "mode": "prodlike",
+    "identical": true,
+    "differences": []
+  }
+]

@@ -44,7 +44,7 @@ What this means for the design: code never waits for TTL deletion (reads check `
 infrastructure checks verify attributes rather than existence, and security properties that the
 emulators do not enforce (IAM, key policies) are checked for *shape* only (cdk-nag), never claimed as tested.
 
-## Infrastructure as code (Phase 012: `make cdk-deploy-parity`, `results/parity/cdk-<target>.json`)
+## Infrastructure as code (Phase 012: `make cdk-deploy-parity`, `results/parity/cdk-<target>-<lang>.json`)
 
 The same bootstrap-less templates on both emulators, deployed with `aws cloudformation deploy` and verified by
 each service's describe API (`scripts/cdk-verify.sh`: DynamoDB table + TTL, Secrets Manager, SSM, KMS key and

@@ -1,0 +1,11 @@
+[
+  {"stack":"KeyedgeKms","status":"ok","detail":"KeyedgeKms: verified: 3 resources, stubbed: 0 "},
+  {"stack":"KeyedgeData","status":"ok","detail":"KeyedgeData: verified: 2 resources, stubbed: 0 "},
+  {"stack":"KeyedgeConfig","status":"ok","detail":"KeyedgeConfig: verified: 7 resources, stubbed: 0 "},
+  {"stack":"KeyedgeCluster","status":"ok","detail":"  (no describe check for AWS::EC2::RouteTable: counted as unverified)   (no describe check for AWS::EC2::Subnet: counted as unverified) KeyedgeCluster: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeKeysService","status":"ok","detail":"to fetch the list of events leading up to the failure aws cloudformation describe-stack-events --stack-name KeyedgeKeysService KeyedgeKeysService: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeQuotesService","status":"failed","detail":"aws: [ERROR]: An error occurred (ValidationError) when calling the CreateChangeSet operation: Template format error: Condition HEALTHY is not defined.  aws: [ERROR]: An error occurred (ValidationError) when calling the DescribeStackResources operation: Stack with id KeyedgeQuotesService does not exist "},
+  {"stack":"KeyedgeEdgeLb","status":"ok","detail":"  (no describe check for AWS::EC2::SecurityGroup: counted as unverified)   (no describe check for AWS::ElasticLoadBalancingV2::TargetGroup: counted as unverified) KeyedgeEdgeLb: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeObservability","status":"ok","detail":"  (no describe check for AWS::SNS::Topic: counted as unverified)   (no describe check for AWS::SNS::TopicPolicy: counted as unverified) KeyedgeObservability: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeCi","status":"ok","detail":"  (no describe check for AWS::IAM::OIDCProvider: counted as unverified)   (no describe check for AWS::IAM::Role: counted as unverified) KeyedgeCi: verified: 0 resources, stubbed: 0 "}
+]

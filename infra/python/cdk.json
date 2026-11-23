@@ -1,0 +1,5 @@
+{
+  "app": "uv run --frozen python -m keyedge_infra.app",
+  "output": "../out/python/cli",
+  "context": {"mode": "local", "env": "local", "aws:cdk:version-reporting": false, "aws:cdk:enable-path-metadata": false}
+}

@@ -126,16 +126,33 @@ run: ## Run one service on the host JVM against TARGET: make run S=keys|issuer
 	( . <(scripts/aws-env.sh $(TARGET)) && KEYEDGE_AWS_TARGET=$(TARGET) MICRONAUT_ENVIRONMENTS=local $(GRADLE) --no-configuration-cache :services:$(S):run )
 
 ## ---- Infrastructure as code (Phase 012: CDK Java; Phase 013 adds CDK_LANG=python) -------------
-.PHONY: cdk-synth cdk-test cdk-nag cdk-deploy cdk-destroy cdk-deploy-parity cdk-stub-demo
+.PHONY: cdk-synth cdk-test cdk-test-all cdk-nag cdk-versions-check cdk-parity cdk-deploy cdk-destroy cdk-deploy-parity cdk-stub-demo
 STACKS ?=
-cdk-synth: ## Synthesise both modes into infra/out/$(CDK_LANG)/{local,prodlike} (cdk-nag errors fail the synth)
-	$(GRADLE) -q :infra:java:run -Pmode=local
-	$(GRADLE) -q :infra:java:run -Pmode=prodlike
+cdk-synth: ## Synthesise both modes of the CDK_LANG app (java|python) into infra/out/<lang>/<mode>; nag errors fail
+	scripts/cdk-synth.sh $(CDK_LANG) local
+	scripts/cdk-synth.sh $(CDK_LANG) prodlike
 
-cdk-test: ## Construct/stack assertions, snapshots, nag counts (starts Node: not part of make test)
-	$(GRADLE) :infra:java:test -Pcdk
+cdk-test: ## Tests of the CDK_LANG app (java: assertions+snapshots; python: pytest, ruff, mypy, import-linter)
+	@if [ "$(CDK_LANG)" = python ]; then \
+	  cd infra/python && uv run --frozen pytest -q && uv run --frozen ruff check . && uv run --frozen ruff format --check . \
+	    && uv run --frozen mypy keyedge_infra && uv run --frozen lint-imports; \
+	else $(GRADLE) :infra:java:test -Pcdk; fi
 
-cdk-nag: cdk-synth ## The cdk-nag gate: synth both modes; any unacknowledged finding fails
+cdk-test-all: ## Both CDK apps' tests and the template diff tool's tests
+	$(MAKE) --no-print-directory cdk-test CDK_LANG=java
+	$(MAKE) --no-print-directory cdk-test CDK_LANG=python
+	uv run --project infra/python --frozen pytest -q scripts/tests/test_cdk_template_diff.py
+
+cdk-nag: cdk-synth ## The cdk-nag gate: synth both modes of CDK_LANG; any unacknowledged finding fails
+
+cdk-versions-check: ## aws-cdk-lib, cdk-nag, constructs: Gradle catalog == uv.lock; cdk.json context blocks equal
+	python3 scripts/cdk_versions_check.py
+
+cdk-parity: cdk-versions-check ## Synth both apps x both modes; templates must be identical (results/parity/cdk-templates.json)
+	@for l in java python; do for m in local prodlike; do scripts/cdk-synth.sh $$l $$m || exit 1; done; done
+	rm -f results/parity/cdk-templates.json
+	python3 scripts/cdk_template_diff.py infra/out/java/local infra/out/python/local --mode local --report results/parity/cdk-templates.json
+	python3 scripts/cdk_template_diff.py infra/out/java/prodlike infra/out/python/prodlike --mode prodlike --report results/parity/cdk-templates.json
 
 cdk-deploy: ## Deploy local templates to the TARGET emulator and verify each resource: make cdk-deploy [TARGET=] [STACKS="..."]
 	@[ -f infra/out/$(CDK_LANG)/local/manifest.json ] || $(MAKE) --no-print-directory cdk-synth

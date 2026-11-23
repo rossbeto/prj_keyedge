@@ -1,0 +1,11 @@
+[
+  {"stack":"KeyedgeKms","status":"ok","detail":"KeyedgeKms: verified: 3 resources, stubbed: 0 "},
+  {"stack":"KeyedgeData","status":"ok","detail":"KeyedgeData: verified: 2 resources, stubbed: 0 "},
+  {"stack":"KeyedgeConfig","status":"ok","detail":"KeyedgeConfig: verified: 7 resources, stubbed: 0 "},
+  {"stack":"KeyedgeCluster","status":"ok","detail":"  (no describe check for AWS::EC2::Route: counted as unverified)   (no describe check for AWS::EC2::Route: counted as unverified) KeyedgeCluster: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeKeysService","status":"ok","detail":"  (no describe check for AWS::ECS::TaskDefinition: counted as unverified)   (no describe check for AWS::EC2::SecurityGroupIngress: counted as unverified) KeyedgeKeysService: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeQuotesService","status":"ok","detail":"  (no describe check for AWS::ECS::TaskDefinition: counted as unverified)   (no describe check for AWS::EC2::SecurityGroupIngress: counted as unverified) KeyedgeQuotesService: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeEdgeLb","status":"ok","detail":"  (no describe check for AWS::ElasticLoadBalancingV2::LoadBalancer: counted as unverified)   (no describe check for AWS::ElasticLoadBalancingV2::Listener: counted as unverified) KeyedgeEdgeLb: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeObservability","status":"ok","detail":"  (no describe check for AWS::CloudWatch::Alarm: counted as unverified)   (no describe check for AWS::SNS::TopicPolicy: counted as unverified) KeyedgeObservability: verified: 0 resources, stubbed: 0 "},
+  {"stack":"KeyedgeCi","status":"ok","detail":"aws cloudformation describe-stack-events --stack-name KeyedgeCi   (no describe check for AWS::IAM::OIDCProvider: counted as unverified) KeyedgeCi: verified: 0 resources, stubbed: 0 "}
+]
