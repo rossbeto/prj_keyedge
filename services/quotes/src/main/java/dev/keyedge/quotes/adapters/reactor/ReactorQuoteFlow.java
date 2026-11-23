@@ -12,6 +12,7 @@ import dev.keyedge.quotes.ports.ReactiveQuotes;
 import dev.keyedge.quotes.ports.RequestContext;
 import dev.keyedge.quotes.ports.TokenProvider;
 import dev.keyedge.quotes.ports.UpstreamEndpoints;
+import dev.keyedge.quotes.ports.UpstreamTelemetry;
 import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
@@ -51,6 +52,7 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
   private final LongSupplier nanos;
   private final RandomGenerator random;
   private final String base;
+  private final UpstreamTelemetry telemetry;
 
   /** One upstream's shared protection (same instances as the blocking path's guards). */
   public record Protection(
@@ -58,6 +60,9 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
 
   /** Per upstream. */
   public record Protections(Protection pricing, Protection stock, Protection fx) {}
+
+  /** Time, randomness (retry jitter) and telemetry: what the flow needs besides its upstreams. */
+  public record Runtime(LongSupplier nanos, RandomGenerator random, UpstreamTelemetry telemetry) {}
 
   private static final class Failure extends RuntimeException {
     private static final long serialVersionUID = 1L;
@@ -76,16 +81,16 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
       TokenProvider tokens,
       Protections protections,
       String baseCurrency,
-      LongSupplier nanos,
-      RandomGenerator random) {
+      Runtime runtime) {
+    this.telemetry = runtime.telemetry();
     this.http = http;
     this.json = json;
     this.endpoints = endpoints;
     this.tokens = tokens;
     this.protections = protections;
     this.base = baseCurrency;
-    this.nanos = nanos;
-    this.random = random;
+    this.nanos = runtime.nanos();
+    this.random = runtime.random();
   }
 
   @Override
@@ -93,10 +98,11 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
       "NullAway") // Mono.toFuture() is typed @Nullable (empty Mono); zip().map() is never empty
   public CompletionStage<QuoteOutcome> quote(QuoteRequest q, RequestContext ctx) {
     String sku = q.sku().value();
+    UpstreamTelemetry.Parent parent = telemetry.capture(); // on the request's thread
     Mono<Upstream.Price> price =
         guarded(
                 "pricing",
-                pricing(sku, ctx),
+                pricing(sku, ctx, parent),
                 protections.pricing(),
                 true,
                 ctx,
@@ -105,7 +111,7 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
     Mono<Upstream.Stock> stock =
         guarded(
                 "stock",
-                get("stock", endpoints.stock().resolve("/stock/" + sku), Map.of(), ctx),
+                get("stock", endpoints.stock().resolve("/stock/" + sku), Map.of(), ctx, parent),
                 protections.stock(),
                 true,
                 ctx,
@@ -118,7 +124,8 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
                     "fx",
                     endpoints.fx().resolve("/fx/" + base + "/" + q.currency().value()),
                     Map.of(),
-                    ctx),
+                    ctx,
+                    parent),
                 protections.fx(),
                 true,
                 ctx,
@@ -152,11 +159,12 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
   }
 
   /** pricing with the shared token; a 401 invalidates it and tries once more with a fresh one. */
-  private Mono<Map<String, Object>> pricing(String sku, RequestContext ctx) {
+  private Mono<Map<String, Object>> pricing(
+      String sku, RequestContext ctx, UpstreamTelemetry.Parent parent) {
     URI uri = endpoints.pricing().resolve("/pricing/" + sku);
     return Mono.fromFuture(tokens::tokenAsync)
         .flatMap(token ->
-            get("pricing", uri, Map.of("Authorization", "Bearer " + token), ctx)
+            get("pricing", uri, Map.of("Authorization", "Bearer " + token), ctx, parent)
                 .onErrorResume(
                     e ->
                         e instanceof CallException c
@@ -165,7 +173,12 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
                       tokens.invalidate(token);
                       return Mono.fromFuture(tokens::tokenAsync)
                           .flatMap(fresh ->
-                              get("pricing", uri, Map.of("Authorization", "Bearer " + fresh), ctx));
+                              get(
+                                  "pricing",
+                                  uri,
+                                  Map.of("Authorization", "Bearer " + fresh),
+                                  ctx,
+                                  parent));
                     }));
   }
 
@@ -212,13 +225,19 @@ public final class ReactorQuoteFlow implements ReactiveQuotes {
   }
 
   private Mono<Map<String, Object>> get(
-      String upstream, URI uri, Map<String, String> headers, RequestContext ctx) {
+      String upstream,
+      URI uri,
+      Map<String, String> headers,
+      RequestContext ctx,
+      UpstreamTelemetry.Parent parent) {
     return Mono.defer(() -> {
+      var call = telemetry.start(upstream, parent);
       var b =
           HttpRequest.newBuilder(uri)
               .timeout(nonZero(ctx.deadline().remaining(nanos)))
               .header("X-Request-Id", ctx.requestId());
       headers.forEach(b::header);
+      call.headers().forEach(b::header);
       HttpRequest request = b.GET().build();
       return Mono.<HttpResponse<byte[]>>create(
               sink -> {

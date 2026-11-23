@@ -20,3 +20,24 @@ keyedge:
   edge:
     app-url: ${KEYEDGE_APP_URL:`http://127.0.0.1:15081`}
     keys-url: ${KEYEDGE_KEYS_URL:`http://127.0.0.1:15100`}
+# Phase 011: traces off unless the observe profile sets OTEL_TRACES_EXPORTER=otlp (+ endpoint)
+otel:
+  traces:
+    exporter: none
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+micronaut.metrics:
+  enabled: true
+  binders:
+    web:
+      server:
+        histogram: true   # http_server_requests_seconds_bucket for per-route p99 panels
+  export:
+    prometheus:
+      enabled: true
+      descriptions: true
+endpoints.prometheus:
+  enabled: true
+  sensitive: false

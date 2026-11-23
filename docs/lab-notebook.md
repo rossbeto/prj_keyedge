@@ -216,3 +216,27 @@ to its minimum. It had no RTT tolerance (Netflix Gradient2 uses 2.0); added (`gr
 test), and `adaptive-vs-fixed` re-run: tolerant gradient keeps the brown-out benefit (250 goodput/s, p99 340 ms).
 **Interview line.** "Native won 10× on start-up and halved memory and CPU — but my '< 100 ms' was measured from
 `docker start`, where the container runtime alone costs ~300 ms. Say which clock you mean."
+
+## pinning (Phase 011)
+
+**Hypothesis.** `synchronized` around a blocking call pins carrier threads on Java 21 (JFR
+`jdk.VirtualThreadPinned`, throughput ≈ carriers / sleep) but not on Java 25 (JEP 491).
+**Method.** `lab/pinning` (a plain module compiled for release 21, run on both JDKs): 1 000 virtual threads, each
+`synchronized` on its own lock around a 50 ms sleep, 4 carrier threads; pinned events counted in-process with a
+JFR `RecordingStream`.
+**Result** ([results/labs/pinning.json](../results/labs/pinning.json)): **confirmed** — Java 21: 12.6 s
+(= 1 000 × 50 ms / 4 carriers, the model exactly), 1 005 pinned events; Java 25: 0.12 s, 0 pinned events:
+102× the throughput on the same bytecode.
+**Interview line.** "On 21 I'd have told you to replace `synchronized` with `ReentrantLock` around I/O. On 25 that
+advice is obsolete — I measured it — and JFR still finds the native-frame cases that do pin."
+
+## scoped-vs-threadlocal (Phase 011)
+
+**Hypothesis.** A tenant left in a `ThreadLocal` by one request is seen by a later request on the same pooled
+thread; a `ScopedValue` binding cannot outlive its scope.
+**Method.** 200 requests on 2 platform threads; every 10th is anonymous (sets no tenant), every 3rd forgets
+`remove()`.
+**Result** ([results/labs/scoped-vs-threadlocal.json](../results/labs/scoped-vs-threadlocal.json)):
+**confirmed** — 7 of 20 anonymous requests saw another tenant through the `ThreadLocal`; 0 through the
+`ScopedValue`. This is why the log encoder reads request fields from the `ScopedValue` at log time instead of an
+MDC that must be filled and cleared.

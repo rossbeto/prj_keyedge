@@ -20,6 +20,10 @@ public final class FakeUpstreams implements AutoCloseable {
   final HttpServer server;
   public final Map<String, LongAdder> calls = new ConcurrentHashMap<>();
   public final AtomicInteger tokensIssued = new AtomicInteger();
+
+  /** The last W3C traceparent each endpoint received (Phase 011 propagation tests). */
+  public final Map<String, String> traceparents = new ConcurrentHashMap<>();
+
   private final Map<String, Long> tokens = new ConcurrentHashMap<>();
   public volatile int pricingStatus = 200;
   public volatile int stockStatus = 200;
@@ -61,6 +65,7 @@ public final class FakeUpstreams implements AutoCloseable {
         "/stock/",
         ex -> {
           count("stock");
+          trace("stock", ex);
           sleep(stockDelayMs);
           reply(ex, stockStatus, "{\"sku\":\"" + last(ex) + "\",\"available\":7}");
         });
@@ -68,6 +73,7 @@ public final class FakeUpstreams implements AutoCloseable {
         "/fx/",
         ex -> {
           count("fx");
+          trace("fx", ex);
           sleep(fxDelayMs);
           String[] p = ex.getRequestURI().getPath().split("/");
           reply(ex, fxStatus, "{\"from\":\"" + p[2] + "\",\"to\":\"" + p[3] + "\",\"rate\":1.1}");
@@ -83,6 +89,7 @@ public final class FakeUpstreams implements AutoCloseable {
       return;
     }
     count("pricing");
+    trace("pricing", ex);
     String auth = ex.getRequestHeaders().getFirst("Authorization");
     Long expires = auth == null ? null : tokens.get(auth.replace("Bearer ", ""));
     if (expires == null || System.nanoTime() - expires >= 0) {
@@ -122,6 +129,13 @@ public final class FakeUpstreams implements AutoCloseable {
 
   private void count(String endpoint) {
     calls.computeIfAbsent(endpoint, e -> new LongAdder()).increment();
+  }
+
+  private void trace(String endpoint, HttpExchange ex) {
+    String tp = ex.getRequestHeaders().getFirst("traceparent");
+    if (tp != null) {
+      traceparents.put(endpoint, tp);
+    }
   }
 
   private static String last(HttpExchange ex) {

@@ -88,7 +88,7 @@ emu-smoke: ## Observed smoke test of every operation the design needs, on TARGET
 ## ---- Lab notebook (experiments: hypothesis -> measurement -> verdict) --------------------
 .PHONY: lab
 RUN_ID := $(shell date +%Y-%m-%d)-$(shell git rev-parse --short HEAD 2>/dev/null)
-lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed|fanout-models|cancel-on-failure|retry-only-idempotent|token-stampede|native-vs-jvm
+lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-flight|refresh-ahead|vt-handoff|control-plane-outage|breaker-vs-none|adaptive-vs-fixed|fanout-models|cancel-on-failure|retry-only-idempotent|token-stampede|native-vs-jvm|pinning|scoped-vs-threadlocal
 	@case "$(E)" in \
 	  naive-bucket-race) \
 	    $(GRADLE) :libs:ratelimit:jcstress -Pjcstress.mode=$(or $(MODE),quick) -Pjcstress.tests='.*Bucket.*|.*Gcra.*|.*Permit.*' > build/jcstress-naive-bucket-race.log 2>&1 || true; \
@@ -108,6 +108,8 @@ lab: ## Run one experiment: make lab E=naive-bucket-race|limiter-cost|single-fli
 	  retry-only-idempotent) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.retryOnlyIdempotent' ;; \
 	  token-stampede) $(GRADLE) :services:quotes:testExperiment --rerun-tasks --tests '*UpstreamPolicyExperiments.tokenStampede' ;; \
 	  native-vs-jvm) TARGET=$(TARGET) python3 lab/native_vs_jvm.py ;; \
+	  pinning) $(GRADLE) :lab:pinning:pinning && python3 lab/pinning_verdict.py ;; \
+	  scoped-vs-threadlocal) $(GRADLE) :libs:observe:testExperiment --rerun-tasks ;; \
 	  *) echo "unknown experiment '$(E)'"; exit 2 ;; \
 	esac
 
@@ -133,14 +135,21 @@ CONTAINER_ENV := KEYEDGE_AWS_TARGET=aws-emulator KEYEDGE_CONTAINER_AWS_ENDPOINT=
 else
 CONTAINER_ENV := KEYEDGE_AWS_TARGET=floci KEYEDGE_CONTAINER_AWS_ENDPOINT=http://floci:4566
 endif
-.PHONY: images image-size up stop logs ps chaos chaos-reset
+.PHONY: images image-size up stop logs ps chaos chaos-reset container-env jfr
+container-env:
+	@for kv in $(CONTAINER_ENV); do echo "export $$kv"; done
+
+D ?= 60s
+jfr: ## Flight recording of one JVM service under demo traffic: make jfr S=edge|quotes|keys D=60s -> results/jfr/
+	scripts/jfr.sh $(S) $(D) $(TARGET)
+
 images: ## Build the JVM images (Gradle distribution on the host, then deploy/Dockerfile.jvm)
 	$(GRADLE) $(foreach s,$(SERVICES),:services:$(s):installDist)
 	$(foreach s,$(SERVICES),docker build -q -f deploy/Dockerfile.jvm --build-arg SERVICE=$(s) -t keyedge/$(s):dev . &&) true
 
 image-size: ## Fail if an image exceeds its budget (MB; native budgets apply when the image exists)
 	@scripts/image_size.sh keyedge/issuer:dev 110 keyedge/keys:dev 125 keyedge/upstream-sim:dev 110 keyedge/edge:dev 125 keyedge/quotes:dev 125
-	@scripts/image_size.sh --if-present keyedge/edge:native 47 keyedge/quotes:native 46 keyedge/keys:native 49
+	@scripts/image_size.sh --if-present keyedge/edge:native 59 keyedge/quotes:native 56 keyedge/keys:native 60
 
 ## ---- Native images and supply chain (Phase 010) -------------------------------------------
 .PHONY: native sbom scan sign verify release-check
@@ -169,8 +178,8 @@ up: ## Emulator + seed + services (TARGET=floci|aws-emulator, FLAVOR=jvm|native)
 	$(MAKE) --no-print-directory seed TARGET=$(TARGET)
 	$(CONTAINER_ENV) $(STACK) up -d --wait --force-recreate issuer keys upstream-sim toxiproxy edge quotes
 
-stop: ## Stop the services (emulators keep running: make emu-down)
-	$(STACK) stop quotes edge issuer keys upstream-sim toxiproxy
+stop: ## Stop the services and the observe profile (emulators keep running: make emu-down)
+	$(STACK) -f deploy/compose.observe.yaml stop prometheus grafana jaeger quotes edge issuer keys upstream-sim toxiproxy
 
 logs: ## Follow logs: make logs S=keys
 	$(COMPOSE) logs -f $(S)
@@ -187,6 +196,13 @@ chaos: ## Simulator scenario (S=brownout-pricing...) or control-plane chaos via 
 chaos-reset: ## Healthy scenario and zeroed counters; Toxiproxy toxics cleared by scripts/toxics.sh
 	curl -sf -X PUT "http://127.0.0.1:15201/__chaos?name=healthy" > /dev/null && curl -sf -X POST http://127.0.0.1:15201/__reset && echo
 	scripts/toxics.sh clear
+
+.PHONY: observe dashboards
+observe: ## Traces (Jaeger 15686), metrics (Prometheus 15090, Grafana 15030): services recreated with OTLP export on
+	$(CONTAINER_ENV) $(STACK) -f deploy/compose.observe.yaml up -d --wait --force-recreate issuer keys upstream-sim edge quotes prometheus jaeger grafana
+
+dashboards: ## Regenerate the Grafana dashboards (deploy/observe/grafana/dashboards) from scripts/build_dashboards.py
+	python3 scripts/build_dashboards.py
 
 .PHONY: demo calibrate resilience-check quotes-check
 quotes-check: ## Quotes under simulator scenarios: blocking == Reactor twin, fx-down -> FX_UNAVAILABLE warning

@@ -2,6 +2,7 @@ package dev.keyedge.fanout.structured;
 
 import dev.keyedge.fanout.Call;
 import dev.keyedge.fanout.CallResult;
+import dev.keyedge.fanout.ContextCarrier;
 import dev.keyedge.fanout.Deadline;
 import dev.keyedge.fanout.FanOut;
 import dev.keyedge.fanout.Tri;
@@ -20,9 +21,15 @@ import java.util.function.LongSupplier;
  */
 public final class StructuredFanOut implements FanOut {
   private final LongSupplier nanos;
+  private final ContextCarrier context;
 
   public StructuredFanOut(LongSupplier nanos) {
+    this(nanos, ContextCarrier.none());
+  }
+
+  public StructuredFanOut(LongSupplier nanos, ContextCarrier context) {
     this.nanos = nanos;
+    this.context = context;
   }
 
   private record Tagged(boolean required, CallResult<?> result) {}
@@ -40,9 +47,10 @@ public final class StructuredFanOut implements FanOut {
     boolean timedOut = false;
     try (var scope =
         StructuredTaskScope.open(stopOnRequiredFailure, cfg -> cfg.withTimeout(timeout))) {
-      sa = scope.fork(() -> new Tagged(a.required(), CallResult.of(a)));
-      sb = scope.fork(() -> new Tagged(b.required(), CallResult.of(b)));
-      sc = scope.fork(() -> new Tagged(c.required(), CallResult.of(c)));
+      var binder = context.capture();
+      sa = scope.fork(binder.wrap(() -> new Tagged(a.required(), CallResult.of(a))));
+      sb = scope.fork(binder.wrap(() -> new Tagged(b.required(), CallResult.of(b))));
+      sc = scope.fork(binder.wrap(() -> new Tagged(c.required(), CallResult.of(c))));
       try {
         scope.join();
       } catch (StructuredTaskScope.TimeoutException e) {

@@ -1,6 +1,7 @@
 <configuration>
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <encoder><pattern>%d{HH:mm:ss.SSS} %-5level [%X{requestId:-}] %logger{20} - %msg%n</pattern></encoder>
+    <!-- one JSON line per event, secrets redacted (libs/observe, Phase 011) -->
+    <encoder class="dev.keyedge.observe.JsonLineEncoder"/>
   </appender>
   <logger name="software.amazon.awssdk" level="WARN"/>
   <root level="info"><appender-ref ref="STDOUT"/></root>

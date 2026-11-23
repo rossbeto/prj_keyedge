@@ -76,6 +76,8 @@ def main() -> int:
     edge_ok = True
     if os.environ.get("EDGE_URL", "http://127.0.0.1:15080"):
         edge = os.environ.get("EDGE_URL", "http://127.0.0.1:15080")
+        for path in ("/v1/quotes/sku-1", "/v1/quotes-reactive/sku-1"):  # warm-up: a cold JVM can miss fx's 150 ms on its first call
+            call("GET", edge + path + "?qty=3&currency=USD", None, {"Authorization": "Bearer " + key})
         status, _, quote = call("GET", edge + "/v1/quotes/sku-1?qty=3&currency=USD", None, {"Authorization": "Bearer " + key})
         print(f"7. through the edge sidecar to quotes: HTTP {status}, tenant {quote.get('tenant')} (the app saw a signed principal, not the key)")
         print(f"   quote: {quote.get('quantity')} x {quote.get('unitPriceCents')} = {quote.get('totalCents')} {quote.get('currency')}, available {quote.get('available')}, warnings {quote.get('warnings')}")

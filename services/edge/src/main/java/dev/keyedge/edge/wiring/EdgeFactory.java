@@ -6,6 +6,8 @@ import dev.keyedge.awstarget.AwsTargets;
 import dev.keyedge.edge.adapters.cache.CaffeineVerdicts;
 import dev.keyedge.edge.adapters.http.HttpUsageSink;
 import dev.keyedge.edge.adapters.http.HttpVerifyClient;
+import dev.keyedge.edge.adapters.observe.JfrEdgeObserver;
+import dev.keyedge.edge.adapters.observe.MicrometerEdgeObserver;
 import dev.keyedge.edge.adapters.ratelimit.GcraKeyLimits;
 import dev.keyedge.edge.adapters.resilience.ResilientVerifyClient;
 import dev.keyedge.edge.adapters.secrets.EdgeSecrets;
@@ -15,17 +17,23 @@ import dev.keyedge.edge.api.Gate;
 import dev.keyedge.edge.app.AdmitRequest;
 import dev.keyedge.edge.app.MeterUsage;
 import dev.keyedge.edge.domain.RouteScopes;
+import dev.keyedge.edge.ports.AdmissionObserver;
 import dev.keyedge.edge.ports.KeyLimits;
 import dev.keyedge.edge.ports.SecretBytes;
 import dev.keyedge.edge.ports.UsageSink;
 import dev.keyedge.edge.ports.Verdicts;
 import dev.keyedge.edge.ports.VerifyClient;
+import dev.keyedge.edge.ports.VerifyObserver;
 import dev.keyedge.keyformat.Scope;
 import dev.keyedge.ratelimit.Ticker;
 import dev.keyedge.ratelimit.concurrency.AimdLimiter;
 import dev.keyedge.ratelimit.concurrency.ConcurrencyLimiter;
 import dev.keyedge.ratelimit.concurrency.FixedLimiter;
 import dev.keyedge.ratelimit.concurrency.GradientLimiter;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Primary;
@@ -131,22 +139,96 @@ public class EdgeFactory {
     };
   }
 
+  // ---- observability (Phase 011): composites behind the ports --------------------------------
+
+  @Singleton
+  MicrometerEdgeObserver micrometerObserver(jakarta.inject.Provider<MeterRegistry> registry) {
+    return new MicrometerEdgeObserver(registry::get);
+  }
+
+  @Singleton
+  JfrEdgeObserver jfrObserver() {
+    return new JfrEdgeObserver();
+  }
+
+  @Singleton
+  AdmissionObserver admissionObserver(MicrometerEdgeObserver m, JfrEdgeObserver j) {
+    return (a, took) -> {
+      m.decided(a, took);
+      j.decided(a, took);
+    };
+  }
+
+  @Singleton
+  VerifyObserver verifyObserver(MicrometerEdgeObserver m, JfrEdgeObserver j) {
+    return (k, n, kind, o) -> {
+      m.loaded(k, n, kind, o);
+      j.loaded(k, n, kind, o);
+    };
+  }
+
+  /** Gauges and function counters over state the components already keep. */
+  @Singleton
+  MeterBinder edgeMeters(
+      CaffeineVerdicts verdicts,
+      VerifyClient client,
+      ConcurrencyLimiter limiter,
+      MeterUsage usage,
+      EdgeFilter filter) {
+    return registry -> {
+      FunctionCounter.builder(
+              "keyedge.verify.cache.stale.served", verdicts, CaffeineVerdicts::staleServed)
+          .description("Answers served from an expired Valid verdict (fail-static)")
+          .register(registry);
+      FunctionCounter.builder(
+              "keyedge.verify.cache.refreshes", verdicts, CaffeineVerdicts::refreshes)
+          .register(registry);
+      FunctionCounter.builder("keyedge.edge.shed", filter, EdgeFilter::shed)
+          .description("Requests shed by the concurrency gate (503 overloaded)")
+          .register(registry);
+      Gauge.builder("keyedge.edge.concurrency.limit", limiter, ConcurrencyLimiter::limit)
+          .register(registry);
+      Gauge.builder("keyedge.edge.inflight", limiter, ConcurrencyLimiter::inFlight)
+          .register(registry);
+      FunctionCounter.builder("keyedge.usage.dropped", usage, MeterUsage::dropped)
+          .description("Usage windows dropped after keys was unreachable too long (D-28)")
+          .register(registry);
+      Gauge.builder("keyedge.usage.pending.windows", usage, MeterUsage::pendingWindows)
+          .register(registry);
+      if (client instanceof ResilientVerifyClient r) {
+        for (String state : java.util.List.of("CLOSED", "OPEN", "HALF_OPEN")) {
+          Gauge.builder("keyedge.verify.breaker.state", r, b -> b.state().equals(state) ? 1 : 0)
+              .tag("state", state)
+              .register(registry);
+        }
+      }
+    };
+  }
+
   @Singleton
   CaffeineVerdicts verdicts(
       VerifyClient client,
       InstantSource clock,
       @Named(TaskExecutors.VIRTUAL) ExecutorService vt,
       EdgeConfig cfg,
-      ResilienceConfig r) {
-    return new CaffeineVerdicts(
-        client,
-        clock,
-        vt,
-        cfg.maxCachedVerdicts(),
-        cfg.verifyWait(),
-        cfg.negativeTtl(),
-        cfg.refreshRatio(),
-        new CaffeineVerdicts.Staleness(r.failurePolicy(), r.staleWindow()));
+      ResilienceConfig r,
+      VerifyObserver observer) {
+    return observed(
+        observer,
+        new CaffeineVerdicts(
+            client,
+            clock,
+            vt,
+            cfg.maxCachedVerdicts(),
+            cfg.verifyWait(),
+            cfg.negativeTtl(),
+            cfg.refreshRatio(),
+            new CaffeineVerdicts.Staleness(r.failurePolicy(), r.staleWindow())));
+  }
+
+  private static CaffeineVerdicts observed(VerifyObserver observer, CaffeineVerdicts verdicts) {
+    verdicts.observeWith(observer);
+    return verdicts;
   }
 
   @Singleton
@@ -173,8 +255,9 @@ public class EdgeFactory {
   }
 
   @Singleton
-  AdmitRequest admitRequest(Verdicts verdicts, KeyLimits limits, EdgeConfig cfg) {
-    return new AdmitRequest(routes(cfg), verdicts, limits);
+  AdmitRequest admitRequest(
+      Verdicts verdicts, KeyLimits limits, EdgeConfig cfg, AdmissionObserver observer) {
+    return new AdmitRequest(routes(cfg), verdicts, limits, observer, System::nanoTime);
   }
 
   static RouteScopes routes(EdgeConfig cfg) {
@@ -199,6 +282,7 @@ public class EdgeFactory {
       EdgeConfig cfg,
       InstantSource clock,
       ConcurrencyLimiter limiter,
+      io.opentelemetry.api.OpenTelemetry otel,
       @Named(TaskExecutors.VIRTUAL) ExecutorService vt)
       throws MalformedURLException {
     URI app = URI.create(cfg.appUrl());
@@ -214,7 +298,8 @@ public class EdgeFactory {
         clock,
         cfg.drainTimeout(),
         limiter,
-        Ticker.system());
+        Ticker.system(),
+        otel);
   }
 
   @Singleton

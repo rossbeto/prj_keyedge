@@ -177,4 +177,38 @@ class EdgeFilterTest implements TestPropertyProvider {
       keys.down = false;
     }
   }
+
+  @Test
+  void theForwardedRequestContinuesTheCallersTrace() {
+    String traceId = "4bf92f3577b34da6a3ce929d0e0e4736";
+    var echo =
+        client
+            .toBlocking()
+            .retrieve(
+                HttpRequest.GET("/v1/quotes/t")
+                    .bearerAuth(apiKey)
+                    .header("traceparent", "00-" + traceId + "-00f067aa0ba902b7-01"),
+                Argument.mapOf(String.class, Object.class));
+    String forwarded = String.valueOf(echo.get("traceparent"));
+    assertThat(forwarded).contains("-" + traceId + "-").doesNotContain("00f067aa0ba902b7");
+  }
+
+  @Inject io.micrometer.core.instrument.MeterRegistry registry;
+
+  /** Metrics never carry key ids, tenants or SKUs: bounded cardinality (Phase 011). */
+  @Test
+  void metricsHaveBoundedTagsAndCountAdmissions() {
+    client.toBlocking().exchange(HttpRequest.GET("/v1/quotes/m").bearerAuth(apiKey), String.class);
+    assertThat(registry.find("keyedge.edge.admission").tag("result", "admitted").counter())
+        .isNotNull();
+    var forbidden = java.util.Set.of("key_id", "keyid", "keyId", "tenant", "sku", "principal");
+    registry
+        .getMeters()
+        .forEach(m ->
+            m.getId().getTags().forEach(t -> assertThat(forbidden).doesNotContain(t.getKey())));
+    String scrape = client.toBlocking().retrieve(HttpRequest.GET("/prometheus"), String.class);
+    assertThat(scrape)
+        .contains("keyedge_edge_admission_total", "keyedge_verify_cache_loads_seconds_count")
+        .contains("keyedge_edge_concurrency_limit", "keyedge_verify_breaker_state");
+  }
 }

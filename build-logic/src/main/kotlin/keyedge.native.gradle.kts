@@ -13,6 +13,7 @@ val runtime = "gcr.io/distroless/cc-debian13:nonroot@sha256:532c7a94f9e96ba9db75
 graalvmNative {
     binaries.named("main") {
         buildArgs.addAll("--no-fallback", "-march=compatibility", "-H:+ReportExceptionStackTraces", "-J-Xmx5g")
+        buildArgs.add("--enable-monitoring=jfr") // JFR in native images (Phase 011)
         if (project.findProperty("keyedge.native.preview") == "true") {
             buildArgs.add("--enable-preview")
         }

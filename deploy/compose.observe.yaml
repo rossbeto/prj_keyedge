@@ -1,0 +1,63 @@
+# Observability profile (Phase 011): make observe (after make up). Traces -> Jaeger v2 (OTLP), metrics ->
+# Prometheus -> Grafana. UIs on 127.0.0.1 only: Jaeger 15686, Prometheus 15090, Grafana 15030.
+x-otel: &otel
+  OTEL_TRACES_EXPORTER: otlp
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4318
+  OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.23.0@sha256:3823829974ccfc2485d2e48b165579091f32295022ae80ca49704e2f4834116e
+    ports: ["127.0.0.1:15686:16686"]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+  # Prometheus joins the edge task's network namespace, like a per-task metrics sidecar: quotes listens
+  # on 127.0.0.1 only (D-26), so only something inside the namespace can scrape it.
+  prometheus:
+    image: prom/prometheus:v3.16.0@sha256:e04987641b57704f408e31f6373ba4138ecf27cb4a165d24aabb6c38fddd0f06
+    network_mode: "service:edge"
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.path=/prometheus", "--web.listen-address=0.0.0.0:9090"]
+    volumes: ["./observe/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    tmpfs: ["/prometheus:mode=1777"]  # runs as nobody
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+  grafana:
+    image: grafana/grafana:13.2.6@sha256:b21409d7951ddcfd63a4b49083e4ef2cc35bc1437d071813bf82bfb238b00bca
+    ports: ["127.0.0.1:15030:3000"]
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"      # local lab only, bound to 127.0.0.1
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./observe/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observe/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    tmpfs: [/var/lib/grafana/plugins, /var/lib/grafana/png, /tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 512m
+  edge:
+    ports: ["127.0.0.1:15090:9090"]   # Prometheus UI (it lives in this namespace)
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: keyedge-edge
+  quotes:
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: keyedge-quotes
+  keys:
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: keyedge-keys
+  issuer:
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: keyedge-issuer
+  upstream-sim:
+    environment:
+      <<: *otel
+      OTEL_SERVICE_NAME: upstream-sim

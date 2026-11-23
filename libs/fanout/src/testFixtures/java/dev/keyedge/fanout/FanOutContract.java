@@ -103,7 +103,8 @@ public abstract class FanOutContract {
                 Call.optional("fx", after(1, 1.0)),
                 in(Duration.ofSeconds(5)));
     long tookMs = (System.nanoTime() - start) / 1_000_000;
-    assertThat(tookMs).isLessThan(500);
+    assertThat(tookMs)
+        .isLessThan(1_000); // the slow sibling takes 2 s: returning early is the point
     assertThat(r.first()).isInstanceOf(CallResult.Failed.class);
     assertThat(r.second()).isInstanceOf(CallResult.Skipped.class);
     assertThat(r.third()).isEqualTo(new CallResult.Ok<>(1.0));

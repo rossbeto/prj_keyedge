@@ -33,3 +33,6 @@ __pycache__/
 
 # jqwik failure database (local test state)
 .jqwik-database
+
+# JFR recordings (make jfr): large binaries, kept locally
+results/jfr/*.jfr

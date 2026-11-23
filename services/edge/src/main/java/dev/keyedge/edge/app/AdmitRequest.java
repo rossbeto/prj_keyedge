@@ -2,6 +2,7 @@ package dev.keyedge.edge.app;
 
 import dev.keyedge.edge.domain.Admission;
 import dev.keyedge.edge.domain.RouteScopes;
+import dev.keyedge.edge.ports.AdmissionObserver;
 import dev.keyedge.edge.ports.KeyLimits;
 import dev.keyedge.edge.ports.Verdicts;
 import dev.keyedge.keyformat.KeyCheck;
@@ -22,14 +23,34 @@ public final class AdmitRequest {
   private final RouteScopes routes;
   private final Verdicts verdicts;
   private final KeyLimits limits;
+  private final AdmissionObserver observer;
+  private final java.util.function.LongSupplier nanos;
 
   public AdmitRequest(RouteScopes routes, Verdicts verdicts, KeyLimits limits) {
+    this(routes, verdicts, limits, AdmissionObserver.none(), () -> 0L);
+  }
+
+  public AdmitRequest(
+      RouteScopes routes,
+      Verdicts verdicts,
+      KeyLimits limits,
+      AdmissionObserver observer,
+      java.util.function.LongSupplier nanos) {
     this.routes = routes;
     this.verdicts = verdicts;
     this.limits = limits;
+    this.observer = observer;
+    this.nanos = nanos;
   }
 
   public Admission admit(String method, String path, Optional<String> authorization) {
+    long start = nanos.getAsLong();
+    Admission admission = decide(method, path, authorization);
+    observer.decided(admission, java.time.Duration.ofNanos(nanos.getAsLong() - start));
+    return admission;
+  }
+
+  private Admission decide(String method, String path, Optional<String> authorization) {
     Optional<Scope> needed = routes.required(method, path);
     if (needed.isEmpty()) {
       return Admission.Rejected.of(ProblemType.NOT_FOUND);

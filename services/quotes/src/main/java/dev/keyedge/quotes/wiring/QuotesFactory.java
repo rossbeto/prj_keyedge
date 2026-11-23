@@ -9,6 +9,7 @@ import dev.keyedge.quotes.adapters.auth.HttpTokenEndpoint;
 import dev.keyedge.quotes.adapters.auth.SingleFlightTokenProvider;
 import dev.keyedge.quotes.adapters.http.HttpUpstreams;
 import dev.keyedge.quotes.adapters.http.JsonHttp;
+import dev.keyedge.quotes.adapters.observe.OtelUpstreamTelemetry;
 import dev.keyedge.quotes.adapters.reactor.ReactorQuoteFlow;
 import dev.keyedge.quotes.adapters.resilience.Guard;
 import dev.keyedge.quotes.adapters.resilience.GuardedUpstreams;
@@ -27,6 +28,9 @@ import io.github.resilience4j.bulkhead.Bulkhead;
 import io.github.resilience4j.bulkhead.BulkheadConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
+import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Primary;
@@ -34,6 +38,7 @@ import io.micronaut.context.annotation.Value;
 import io.micronaut.core.type.Argument;
 import io.micronaut.json.JsonMapper;
 import io.micronaut.scheduling.TaskExecutors;
+import io.opentelemetry.api.OpenTelemetry;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.io.IOException;
@@ -184,8 +189,15 @@ public class QuotesFactory {
       JsonMapper json,
       UpstreamEndpoints endpoints,
       TokenProvider tokens,
-      Protections p) {
-    var raw = new HttpUpstreams(new JsonHttp(http, json), endpoints, tokens, System::nanoTime);
+      Protections p,
+      OpenTelemetry otel,
+      jakarta.inject.Provider<MeterRegistry> registry,
+      QuotesConfig cfg) {
+    var telemetry =
+        new OtelUpstreamTelemetry(
+            otel, registry::get, cfg.fanout().name().toLowerCase(java.util.Locale.ROOT));
+    var raw =
+        new HttpUpstreams(new JsonHttp(http, json, telemetry), endpoints, tokens, System::nanoTime);
     return new GuardedUpstreams(
         raw,
         raw,
@@ -195,16 +207,22 @@ public class QuotesFactory {
         guard("fx", p.fx()));
   }
 
-  /** Carries {@link RequestContext#CURRENT} into executor tasks (the futures adapter needs it). */
+  /**
+   * Carries the request into fan-out tasks: {@link RequestContext#CURRENT} for executor tasks
+   * (forks inherit scoped values anyway) and OpenTelemetry's ThreadLocal-based context, which
+   * neither executor tasks nor structured forks inherit (Phase 011).
+   */
   static ContextCarrier requestContextCarrier() {
     return () -> {
       RequestContext ctx = RequestContext.CURRENT.isBound() ? RequestContext.CURRENT.get() : null;
+      io.opentelemetry.context.Context otel = io.opentelemetry.context.Context.current();
       return new ContextCarrier.Binder() {
         @Override
         public <T> Callable<T> wrap(Callable<T> task) {
+          Callable<T> traced = otel.wrap(task);
           return ctx == null
-              ? task
-              : () -> ScopedValue.where(RequestContext.CURRENT, ctx).call(task::call);
+              ? traced
+              : () -> ScopedValue.where(RequestContext.CURRENT, ctx).call(traced::call);
         }
       };
     };
@@ -235,7 +253,9 @@ public class QuotesFactory {
       UpstreamEndpoints endpoints,
       TokenProvider tokens,
       Protections p,
-      QuotesConfig cfg) {
+      QuotesConfig cfg,
+      OpenTelemetry otel,
+      jakarta.inject.Provider<MeterRegistry> registry) {
     return new ReactorQuoteFlow(
         http,
         json,
@@ -243,7 +263,23 @@ public class QuotesFactory {
         tokens,
         new ReactorQuoteFlow.Protections(p.pricing(), p.stock(), p.fx()),
         cfg.baseCurrency(),
-        System::nanoTime,
-        RandomGenerator.getDefault());
+        new ReactorQuoteFlow.Runtime(
+            System::nanoTime,
+            RandomGenerator.getDefault(),
+            new OtelUpstreamTelemetry(otel, registry::get, "reactor")));
+  }
+
+  /** Retries granted per upstream (each retry is also an extra call in keyedge_upstream_calls). */
+  @Singleton
+  MeterBinder upstreamMeters(Protections p) {
+    return registry -> {
+      for (var e :
+          java.util.Map.of("pricing", p.pricing(), "stock", p.stock(), "fx", p.fx()).entrySet()) {
+        FunctionCounter.builder(
+                "keyedge.upstream.retries", e.getValue().budget(), RetryBudget::retries)
+            .tag("upstream", e.getKey())
+            .register(registry);
+      }
+    };
   }
 }

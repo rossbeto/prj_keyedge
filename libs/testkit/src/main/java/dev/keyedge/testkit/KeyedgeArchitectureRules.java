@@ -23,7 +23,15 @@ import java.util.List;
 public final class KeyedgeArchitectureRules {
   /** Frameworks and libraries that must stay out of the core (app, domain, ports). */
   public static final List<String> FRAMEWORK_PACKAGES =
-      List.of("io.micronaut..", "software.amazon..", "reactor..", "io.github.resilience4j..");
+      List.of(
+          "io.micronaut..",
+          "software.amazon..",
+          "reactor..",
+          "io.github.resilience4j..",
+          // telemetry (Phase 011): observed through ports, implemented in adapters/api/wiring
+          "io.opentelemetry..",
+          "io.micrometer..",
+          "jdk.jfr..");
 
   /** Deliberately wrong code for "found and fixed" demos lives here and is exempt. */
   public static final String PITFALLS = "..lab.pitfalls..";

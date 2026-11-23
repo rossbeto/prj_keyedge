@@ -2,6 +2,7 @@ package dev.keyedge.quotes.adapters.http;
 
 import dev.keyedge.fanout.CallException;
 import dev.keyedge.quotes.ports.RequestContext;
+import dev.keyedge.quotes.ports.UpstreamTelemetry;
 import io.micronaut.core.type.Argument;
 import io.micronaut.json.JsonMapper;
 import java.io.IOException;
@@ -22,25 +23,34 @@ import java.util.Map;
 public final class JsonHttp {
   private final HttpClient http;
   private final JsonMapper json;
+  private final UpstreamTelemetry telemetry;
 
   public JsonHttp(HttpClient http, JsonMapper json) {
+    this(http, json, UpstreamTelemetry.none());
+  }
+
+  public JsonHttp(HttpClient http, JsonMapper json, UpstreamTelemetry telemetry) {
     this.http = http;
     this.json = json;
+    this.telemetry = telemetry;
   }
 
   public Map<String, Object> get(
       String upstream, URI uri, Duration timeout, Map<String, String> headers)
       throws CallException, InterruptedException {
-    return send(upstream, request(uri, timeout, headers).GET().build());
+    var call = telemetry.start(upstream, telemetry.capture());
+    return send(upstream, call, request(uri, timeout, merged(headers, call)).GET().build());
   }
 
   public Map<String, Object> post(
       String upstream, URI uri, Duration timeout, Map<String, String> headers, Object body)
       throws CallException, InterruptedException {
     try {
+      var call = telemetry.start(upstream, telemetry.capture());
       return send(
           upstream,
-          request(uri, timeout, headers)
+          call,
+          request(uri, timeout, merged(headers, call))
               .header("Content-Type", "application/json")
               .POST(HttpRequest.BodyPublishers.ofByteArray(json.writeValueAsBytes(body)))
               .build());
@@ -59,18 +69,36 @@ public final class JsonHttp {
     return b;
   }
 
-  private Map<String, Object> send(String upstream, HttpRequest request)
+  private static Map<String, String> merged(
+      Map<String, String> headers, UpstreamTelemetry.Call call) {
+    if (call.headers().isEmpty()) {
+      return headers;
+    }
+    var all = new java.util.HashMap<>(headers);
+    all.putAll(call.headers());
+    return all;
+  }
+
+  private Map<String, Object> send(
+      String upstream, UpstreamTelemetry.Call call, HttpRequest request)
       throws CallException, InterruptedException {
     HttpResponse<byte[]> r;
     try {
       r = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+      call.end(UpstreamTelemetry.outcome(r.statusCode()));
     } catch (HttpTimeoutException e) {
+      call.end("timeout");
       throw CallException.timeout(upstream);
     } catch (IOException e) {
       if (Thread.currentThread().isInterrupted()) {
+        call.end("cancelled");
         throw new InterruptedException("cancelled");
       }
+      call.end("io");
       throw CallException.io(upstream, e.getClass().getSimpleName());
+    } catch (InterruptedException e) {
+      call.end("cancelled");
+      throw e;
     }
     if (r.statusCode() / 100 != 2) {
       Duration retryAfter =

@@ -12,3 +12,24 @@ endpoints:
     details-visible: ANONYMOUS
     disk-space:
       path: /tmp
+# Phase 011: traces off unless the observe profile sets OTEL_TRACES_EXPORTER=otlp (+ endpoint)
+otel:
+  traces:
+    exporter: none
+  metrics:
+    exporter: none
+  logs:
+    exporter: none
+micronaut.metrics:
+  enabled: true
+  binders:
+    web:
+      server:
+        histogram: true   # http_server_requests_seconds_bucket for per-route p99 panels
+  export:
+    prometheus:
+      enabled: true
+      descriptions: true
+endpoints.prometheus:
+  enabled: true
+  sensitive: false

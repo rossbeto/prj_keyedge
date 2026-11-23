@@ -4,4 +4,6 @@
 <suppressions>
   <suppress files="[\\/]fixtures[\\/]bad[\\/]" checks=".*"/>
   <suppress files="[\\/]lab[\\/]pitfalls[\\/]" checks=".*"/>
+  <!-- Composition roots wire many collaborators by design (Phase 011: tracing added one more). -->
+  <suppress files="[\\/]wiring[\\/][A-Za-z]+Factory\.java$" checks="ParameterNumber"/>
 </suppressions>

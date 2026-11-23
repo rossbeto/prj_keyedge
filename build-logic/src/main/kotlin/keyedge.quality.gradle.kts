@@ -16,6 +16,8 @@ dependencies {
 tasks.withType<JavaCompile>().configureEach {
     options.errorprone {
         disableWarningsInGeneratedCode = true
+        // Error Prone 2.53 crashes in this suggestion-level check on some lambdas (NoSuchElementException in matchLiteral)
+        disable("StringConcatToTextBlock")
         excludedPaths = ".*/build/generated/.*"
         check("NullAway", net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
         option("NullAway:OnlyNullMarked", "true")

@@ -44,6 +44,8 @@ def main() -> int:
     auth = {"Authorization": "Bearer " + created["key"]}
     ok = True
     try:
+        for path in ("/v1/quotes/sku-7", "/v1/quotes-reactive/sku-7"):  # warm-up (cold JVM vs fx's 150 ms)
+            call("GET", EDGE + path + "?qty=2&currency=USD", None, auth)
         for name in ("healthy", "fx-down"):
             scenario(name)
             b = call("GET", EDGE + "/v1/quotes/sku-7?qty=2&currency=USD", None, auth)

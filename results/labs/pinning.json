@@ -1,0 +1,26 @@
+{
+  "experiment": "pinning",
+  "hypothesis": "synchronized around a blocking call pins carrier threads on Java 21 (JFR jdk.VirtualThreadPinned, throughput ~ carriers / sleep) but not on Java 25 (JEP 491)",
+  "setup": "1 000 virtual threads, each synchronized on its own lock around a 50 ms sleep; 4 carrier threads; pinned events counted in-process with a JFR RecordingStream (threshold 0)",
+  "java21": {
+    "java": "21.0.10",
+    "tasks": 1000,
+    "sleep_ms": 50,
+    "carriers": 4,
+    "wall_s": 12.603,
+    "throughput_tasks_per_s": 79.3,
+    "pinned_events": 1005
+  },
+  "java25": {
+    "java": "25.0.5.1",
+    "tasks": 1000,
+    "sleep_ms": 50,
+    "carriers": 4,
+    "wall_s": 0.124,
+    "throughput_tasks_per_s": 8091.7,
+    "pinned_events": 0
+  },
+  "throughput_ratio_25_over_21": 102.0,
+  "verdict": "confirmed",
+  "recorded_at": "2026-11-23T03:31:45Z"
+}

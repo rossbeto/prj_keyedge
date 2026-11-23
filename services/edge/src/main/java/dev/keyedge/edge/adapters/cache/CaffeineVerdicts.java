@@ -7,6 +7,7 @@ import dev.keyedge.edge.domain.FailurePolicy;
 import dev.keyedge.edge.domain.StaleDecision;
 import dev.keyedge.edge.ports.Verdicts;
 import dev.keyedge.edge.ports.VerifyClient;
+import dev.keyedge.edge.ports.VerifyObserver;
 import dev.keyedge.keyformat.KeyCheck;
 import dev.keyedge.keyformat.KeyId;
 import dev.keyedge.keyformat.KeySecret;
@@ -54,6 +55,7 @@ public final class CaffeineVerdicts implements Verdicts {
   private final LongAdder refreshes = new LongAdder();
   private final LongAdder staleServed = new LongAdder();
   private final FailurePolicy policy;
+  private volatile VerifyObserver observer = VerifyObserver.none();
   private final Duration staleWindow;
 
   /** Fail-static settings; {@link #closed()} keeps the Phase 007 behaviour. */
@@ -105,13 +107,7 @@ public final class CaffeineVerdicts implements Verdicts {
             .maximumSize(maxEntries)
             .executor(executor)
             .expireAfter(new ExpireAtTtl(clock, staleWindow))
-            .buildAsync((key, ex) ->
-                CompletableFuture.supplyAsync(
-                    () -> {
-                      loads.increment();
-                      return timed(client.verify(key.keyId(), key.secret()));
-                    },
-                    ex));
+            .buildAsync((key, ex) -> CompletableFuture.supplyAsync(() -> load(key, "miss"), ex));
   }
 
   private Timed timed(KeyCheck check) {
@@ -181,8 +177,7 @@ public final class CaffeineVerdicts implements Verdicts {
       }
       executor.execute(() -> {
         try {
-          loads.increment();
-          Timed fresh = timed(client.verify(key.keyId(), key.secret()));
+          Timed fresh = load(key, "revalidate");
           cache.put(key, CompletableFuture.completedFuture(fresh));
           mine.complete(fresh);
         } catch (RuntimeException e) {
@@ -227,10 +222,7 @@ public final class CaffeineVerdicts implements Verdicts {
     CompletableFuture.runAsync(
         () -> {
           try {
-            loads.increment();
-            cache.put(
-                key,
-                CompletableFuture.completedFuture(timed(client.verify(key.keyId(), key.secret()))));
+            cache.put(key, CompletableFuture.completedFuture(load(key, "refresh")));
           } catch (RuntimeException e) {
             // keep serving the old value; the next reader past refreshAt tries again
           } finally {
@@ -238,6 +230,26 @@ public final class CaffeineVerdicts implements Verdicts {
           }
         },
         executor);
+  }
+
+  /** Where each control-plane call is reported (metrics, JFR); set once by wiring. */
+  public void observeWith(VerifyObserver observer) {
+    this.observer = observer;
+  }
+
+  /** One verify call, timed and reported. */
+  private Timed load(Key key, String kind) {
+    loads.increment();
+    long start = System.nanoTime();
+    try {
+      Timed t = timed(client.verify(key.keyId(), key.secret()));
+      observer.loaded(
+          key.keyId(), System.nanoTime() - start, kind, t.check().getClass().getSimpleName());
+      return t;
+    } catch (RuntimeException e) {
+      observer.loaded(key.keyId(), System.nanoTime() - start, kind, "unavailable");
+      throw e;
+    }
   }
 
   /** Loads started (verify calls), for tests and metrics. */

@@ -82,7 +82,16 @@ class FanoutExperiments {
     if (name.equals("reactor")) {
       var flow =
           new ReactorQuoteFlow(
-              http, LabQuotes.JSON, e, tokens, p, "EUR", System::nanoTime, new SplittableRandom(1));
+              http,
+              LabQuotes.JSON,
+              e,
+              tokens,
+              p,
+              "EUR",
+              new ReactorQuoteFlow.Runtime(
+                  System::nanoTime,
+                  new SplittableRandom(1),
+                  dev.keyedge.quotes.ports.UpstreamTelemetry.none()));
       return n ->
           flow.quote(REQ, ctx(Duration.ofSeconds(2))).toCompletableFuture().join()
               instanceof QuoteOutcome.Priced;
