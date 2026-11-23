@@ -1,0 +1,17 @@
+# Phase 015: what the native sidecar costs on the path, vs k6 calling quotes directly inside the task's namespace
+# with the signed principal the edge would add.
+name: native-overhead
+hypothesis: >-
+  The native edge adds < 2 ms p50 and < 5 ms p99 versus calling quotes directly, at the middle offered rate.
+target: edge
+path: /v1/quotes/sku-7?qty=2&currency=USD
+simScenario: healthy
+rates: [50, 100, 150]
+stepSeconds: 20
+warmupSeconds: 20
+repetitions: 3
+slo: { p99Ms: 250, maxErrorRatio: 0.001 }
+model: { latencyMs: 35, concurrencyCap: 500, sutCpus: 4, cpuMsPerRequest: 2 }
+variants:
+  - { name: via-edge, flavor: native, env: {}, target: edge }
+  - { name: direct, flavor: native, env: {}, target: direct }

@@ -1,0 +1,20 @@
+# Phase 015: the smallest edge (cgroup CPU/memory limits, `docker update`) that meets the SLO at 200 rps.
+# cgroup limits are not Fargate: the result says which local size meets the SLO, not what Fargate will do.
+name: fargate-size
+hypothesis: >-
+  The native edge meets the SLO (p99 ≤ 150 ms total, errors ≤ 0.1 %) at 0.25 vCPU / 256 MiB; the JVM edge does not
+  at that size and needs 0.5 vCPU / 512 MiB.
+target: edge
+path: /v1/quotes/sku-7?qty=2&currency=USD
+simScenario: healthy
+rates: [200]
+stepSeconds: 30
+warmupSeconds: 30
+repetitions: 3
+slo: { p99Ms: 150, maxErrorRatio: 0.001 }
+model: { latencyMs: 35, concurrencyCap: 500, sutCpus: 0.25, cpuMsPerRequest: 1 }
+variants:
+  - { name: native-0.25, flavor: native, env: {}, cpus: 0.25, memory: 256m }
+  - { name: jvm-0.25, flavor: jvm, env: {}, cpus: 0.25, memory: 256m }
+  - { name: jvm-0.5, flavor: jvm, env: {}, cpus: 0.5, memory: 512m }
+  - { name: jvm-1, flavor: jvm, env: {}, cpus: 1.0, memory: 1g }

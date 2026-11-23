@@ -31,6 +31,20 @@ make emu-up TARGET=aws-emulator   # the second emulator (built from its latest p
 
 No phase deploys to a real AWS account.
 
+## Measured results
+
+<!-- bench:begin -->
+19 experiments with a hypothesis written before the run: 16 confirmed, 2 refuted, 1 inconclusive ([lab notebook](docs/lab-notebook.md)).
+
+| Bench | Verdict | Finding | Results |
+|---|---|---|---|
+| vt-vs-reactor | not run | — | — |
+| native-overhead | not run | — | — |
+| fargate-size | not run | — | — |
+
+![native vs JVM](docs/media/native-vs-jvm.svg)
+<!-- bench:end -->
+
 ## Build
 
 Requirements: Docker, a JDK ≥ 17 to start Gradle (Gradle then provisions **Java 25** for its daemon and

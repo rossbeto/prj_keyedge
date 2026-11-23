@@ -167,6 +167,37 @@ cdk-stub-demo: ## The stub trap on Floci: stubbing off fails loudly; on, CloudFo
 cdk-deploy-parity: ## Try every local stack on TARGET; results/parity/cdk-<target>.json (gaps are parity rows)
 	CDK_LANG=$(CDK_LANG) scripts/cdk-deploy.sh parity $(TARGET)
 
+## ---- Bench and lab notebook (Phase 015) ---------------------------------------------------------
+# CPU pinning on this 14-CPU host (the fingerprint records nproc and the load average)
+BENCH_ENV := BENCH_SUT_CPUS=$(or $(BENCH_SUT_CPUS),2-5) BENCH_SUPPORT_CPUS=$(or $(BENCH_SUPPORT_CPUS),6-9) BENCH_K6_CPUS=$(or $(BENCH_K6_CPUS),10-13)
+BENCH = JAVA_HOME=$$(cat bench/build/java-home) bench/build/install/bench/bin/bench
+# in-process experiments (no stack); idempotency-race/pepper-rotation run in `make test-aws`, native-vs-jvm needs the stack
+LAB_ALL ?= naive-bucket-race single-flight refresh-ahead vt-handoff control-plane-outage breaker-vs-none adaptive-vs-fixed fanout-models cancel-on-failure retry-only-idempotent token-stampede pinning scoped-vs-threadlocal limiter-cost
+.PHONY: bench bench-smoke bench-install report docs-check lab-all
+bench-install:
+	@$(GRADLE) -q :bench:installDist
+
+bench: bench-install ## Prediction first, then the run: make bench S=vt-vs-reactor|native-overhead|fargate-size (stack up, observe OFF, no builds)
+	@[ -n "$(S)" ] || { echo "S=<scenario> (bench/scenarios/*.yaml)"; exit 2; }
+	@if docker ps --format '{{.Names}}' | grep -qx keyedge-prometheus-1; then echo "REFUSED: the observe profile is running (make stop): it skews results"; exit 1; fi
+	@run=$$(date -u +%Y%m%d-%H%M%S)-$(S); \
+	  $(CONTAINER_ENV) $(BENCH_ENV) $(BENCH) predict --scenario $(S) --run $$run && \
+	  $(CONTAINER_ENV) $(BENCH_ENV) $(BENCH) run --scenario $(S) --run $$run && \
+	  $(BENCH) validate
+
+bench-smoke: ## The harness: 10 s at 20 rps through the edge -> a valid results/bench/<run>/bench-result.json
+	@$(MAKE) --no-print-directory bench S=bench-smoke
+
+report: bench-install ## Regenerate the notebook index, bench sections, README block and docs/media charts from results/
+	$(BENCH) report
+
+docs-check: bench-install ## Fail if a generated block or chart is stale, or a notebook verdict disagrees with its results file
+	$(BENCH) report --check
+
+lab-all: ## Re-run every in-process experiment (results/labs/*.json), then `make report`
+	@for e in $(LAB_ALL); do echo "== $$e"; $(MAKE) --no-print-directory lab E=$$e || echo "FAILED: $$e"; done
+	@$(MAKE) --no-print-directory report
+
 ## ---- Emulated ECS (Phase 014): CDK templates on Floci with real task containers --------------------
 .PHONY: ecs-up ecs-deploy ecs-status ecs-smoke ecs-experiments ecs-down
 ecs-up: ## Floci-ECS (Docker socket: opt-in, root-equivalent), data/config stacks, support services

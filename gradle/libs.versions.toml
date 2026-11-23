@@ -32,6 +32,8 @@ flociTestcontainers = "2.17.0"
 bucket4j = "8.23.0"
 junit = "6.1.3"
 assertj = "3.27.7"
+picocli = "4.7.7"
+jackson3 = "3.2.3"
 
 [libraries]
 jspecify = { module = "org.jspecify:jspecify", version.ref = "jspecify" }
@@ -55,6 +57,9 @@ testcontainers = { module = "org.testcontainers:testcontainers" }
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 assertj = { module = "org.assertj:assertj-core", version.ref = "assertj" }
 bucket4j = { module = "com.bucket4j:bucket4j_jdk17-core", version.ref = "bucket4j" }
+picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+jackson3-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson3" }
+jackson3-yaml = { module = "tools.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson3" }
 # build-logic plugin artifacts
 plugin-spotless = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 plugin-errorprone = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "errorpronePlugin" }

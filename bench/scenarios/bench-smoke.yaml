@@ -1,0 +1,14 @@
+# The harness itself (CI-sized): 10 s at 20 rps through the edge; valid result file, nothing dropped.
+name: bench-smoke
+hypothesis: "The harness offers 20 req/s for 10 s through the edge with no dropped iterations."
+target: edge
+path: /v1/quotes/sku-7?qty=2&currency=USD
+simScenario: healthy
+rates: [20]
+stepSeconds: 10
+warmupSeconds: 0
+repetitions: 1
+slo: { p99Ms: 1000, maxErrorRatio: 0.01 }
+model: { latencyMs: 40, concurrencyCap: 500, sutCpus: 4, cpuMsPerRequest: 4 }
+variants:
+  - { name: jvm, flavor: jvm, env: {} }

@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 420" width="720" height="420" role="img" aria-label="native-vs-jvm: the native edge as % of the JVM edge">
+<title>native-vs-jvm: the native edge as % of the JVM edge</title>
+<style>
+.bg{fill:#fcfcfb}.t1{fill:#0b0b0b;font:600 15px system-ui,sans-serif}.t2{fill:#52514e;font:12px system-ui,sans-serif}.grid{stroke:#e4e3df;stroke-width:1}.axis{stroke:#8a8984;stroke-width:1}.line{fill:none;stroke-width:2}.ring{stroke:#fcfcfb;stroke-width:2}.s0{stroke:#2a78d6}.s1{stroke:#eb6834}.s2{stroke:#1baf7a}.f0{fill:#2a78d6}.f1{fill:#eb6834}.f2{fill:#1baf7a}
+@media (prefers-color-scheme:dark){.bg{fill:#1a1a19}.t1{fill:#f0efec}.t2{fill:#c3c2b7}.grid{stroke:#33332f}.axis{stroke:#6b6a66}.ring{stroke:#1a1a19}.s0{stroke:#3987e5}.s1{stroke:#d95926}.s2{stroke:#199e70}.f0{fill:#3987e5}.f1{fill:#d95926}.f2{fill:#199e70}}
+</style>
+<rect class="bg" width="100%" height="100%"/>
+<text class="t1" x="64" y="28">native-vs-jvm: the native edge as % of the JVM edge</text>
+<line class="grid" x1="64" x2="600" y1="364" y2="364"/><text class="t2" text-anchor="end" x="56" y="368">0</text>
+<line class="grid" x1="64" x2="600" y1="294" y2="294"/><text class="t2" text-anchor="end" x="56" y="298">25</text>
+<line class="grid" x1="64" x2="600" y1="224" y2="224"/><text class="t2" text-anchor="end" x="56" y="228">50</text>
+<line class="grid" x1="64" x2="600" y1="154" y2="154"/><text class="t2" text-anchor="end" x="56" y="158">75</text>
+<line class="grid" x1="64" x2="600" y1="84" y2="84"/><text class="t2" text-anchor="end" x="56" y="88">100</text>
+<line class="axis" x1="64" x2="600" y1="364" y2="364"/>
+<text class="t2" x="64" y="54">% of JVM (JVM = 100)</text>
+<path class="f0" d="M82.6 364V88Q82.6 84 86.6 84H112.6Q116.6 84 116.6 88V364Z"><title>start to ready, jvm: 100 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="99.6" y="78">100</text>
+<path class="f1" d="M118.6 364V344.5Q118.6 340.5 122.6 340.5H148.6Q152.6 340.5 152.6 344.5V364Z"><title>start to ready, native: 8.4 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="135.6" y="334.5">8.4</text>
+<text class="t2" text-anchor="middle" x="117.6" y="384">start to ready</text>
+<path class="f0" d="M189.8 364V88Q189.8 84 193.8 84H219.8Q223.8 84 223.8 88V364Z"><title>RSS idle, jvm: 100 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="206.8" y="78">100</text>
+<path class="f1" d="M225.8 364V218.8Q225.8 214.8 229.8 214.8H255.8Q259.8 214.8 259.8 218.8V364Z"><title>RSS idle, native: 53.3 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="242.8" y="208.8">53.3</text>
+<text class="t2" text-anchor="middle" x="224.8" y="384">RSS idle</text>
+<path class="f0" d="M297 364V88Q297 84 301 84H327Q331 84 331 88V364Z"><title>RSS after load, jvm: 100 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="314" y="78">100</text>
+<path class="f1" d="M333 364V195.0Q333 191.0 337 191.0H363Q367 191.0 367 195.0V364Z"><title>RSS after load, native: 61.8 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="350" y="185.0">61.8</text>
+<text class="t2" text-anchor="middle" x="332" y="384">RSS after load</text>
+<path class="f0" d="M404.2 364V88Q404.2 84 408.2 84H434.2Q438.2 84 438.2 88V364Z"><title>p99 at 200 rps, jvm: 100 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="421.2" y="78">100</text>
+<path class="f1" d="M440.2 364V269.2Q440.2 265.2 444.2 265.2H470.2Q474.2 265.2 474.2 269.2V364Z"><title>p99 at 200 rps, native: 35.3 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="457.2" y="259.2">35.3</text>
+<text class="t2" text-anchor="middle" x="439.2" y="384">p99 at 200 rps</text>
+<path class="f0" d="M511.4 364V88Q511.4 84 515.4 84H541.4Q545.4 84 545.4 88V364Z"><title>CPU during load, jvm: 100 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="528.4" y="78">100</text>
+<path class="f1" d="M547.4 364V232.5Q547.4 228.5 551.4 228.5H577.4Q581.4 228.5 581.4 232.5V364Z"><title>CPU during load, native: 48.4 % of JVM (JVM = 100)</title></path>
+<text class="t2" text-anchor="middle" x="564.4" y="222.5">48.4</text>
+<text class="t2" text-anchor="middle" x="546.4" y="384">CPU during load</text>
+<rect class="f0" x="612" y="83" width="10" height="10" rx="2"/><text class="t2" x="628" y="92">jvm</text>
+<rect class="f1" x="612" y="103" width="10" height="10" rx="2"/><text class="t2" x="628" y="112">native</text>
+</svg>

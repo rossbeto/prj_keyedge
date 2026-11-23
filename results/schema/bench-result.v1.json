@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "keyedge.bench-result.v1",
+  "title": "keyedge bench result v1 (results/bench/<runId>/bench-result.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "runId", "scenario", "hypothesis", "startedAt", "git", "fingerprint", "prediction", "slo",
+               "steps", "saturationRps", "verdict", "verdictDetail", "findings", "notes"],
+  "properties": {
+    "schema": { "const": "keyedge.bench-result.v1" },
+    "runId": { "type": "string" },
+    "scenario": { "type": "string" },
+    "hypothesis": { "type": "string" },
+    "startedAt": { "type": "string" },
+    "git": { "type": "object", "required": ["sha", "dirty"], "additionalProperties": false,
+             "properties": { "sha": { "type": "string" }, "dirty": { "type": "boolean" } } },
+    "fingerprint": {
+      "type": "object", "additionalProperties": false,
+      "required": ["host", "cpus", "memTotalMb", "kernel", "docker", "jdk", "images", "emulatorKind", "emulatorVersion", "loadAverage1m"],
+      "properties": {
+        "host": { "type": "string" }, "cpus": { "type": "integer", "minimum": 1 }, "memTotalMb": { "type": "integer" },
+        "kernel": { "type": "string" }, "docker": { "type": "string" }, "jdk": { "type": "string" },
+        "images": { "type": "object" }, "emulatorKind": { "type": "string" }, "emulatorVersion": { "type": "string" },
+        "loadAverage1m": { "type": "number" }
+      }
+    },
+    "prediction": {
+      "type": "object", "additionalProperties": false, "required": ["scenario", "runId", "writtenAt", "statement", "numbers"],
+      "properties": { "scenario": { "type": "string" }, "runId": { "type": "string" }, "writtenAt": { "type": "string" },
+                      "statement": { "type": "string" }, "numbers": { "type": "object" } }
+    },
+    "slo": { "type": "object", "required": ["p99Ms", "maxErrorRatio"], "additionalProperties": false,
+             "properties": { "p99Ms": { "type": "number", "minimum": 0 }, "maxErrorRatio": { "type": "number", "minimum": 0 } } },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["variant", "offeredRps", "repetition", "achievedRps", "p50Ms", "p90Ms", "p99Ms", "maxMs", "requests",
+                     "errors", "droppedIterations", "cpuPerReqMs", "valid", "invalidReason"],
+        "properties": {
+          "variant": { "type": "string" }, "offeredRps": { "type": "integer", "minimum": 1 },
+          "repetition": { "type": "integer", "minimum": 1 }, "achievedRps": { "type": "number", "minimum": 0 },
+          "p50Ms": { "type": "number", "minimum": 0 }, "p90Ms": { "type": "number", "minimum": 0 },
+          "p99Ms": { "type": "number", "minimum": 0 }, "maxMs": { "type": "number", "minimum": 0 },
+          "requests": { "type": "integer", "minimum": 0 }, "errors": { "type": "integer", "minimum": 0 },
+          "droppedIterations": { "type": "integer", "minimum": 0 }, "cpuPerReqMs": { "type": ["number", "null"] },
+          "valid": { "type": "boolean" }, "invalidReason": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "saturationRps": { "type": "object" },
+    "verdict": { "enum": ["confirmed", "refuted", "inconclusive"] },
+    "verdictDetail": { "type": "string" },
+    "findings": { "type": "object" },
+    "notes": { "type": "array", "items": { "type": "string" } }
+  }
+}

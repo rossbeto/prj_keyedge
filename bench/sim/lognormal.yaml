@@ -1,0 +1,9 @@
+# Upstream latency for vt-vs-reactor (Phase 015 plan): lognormal, median 40 ms / p99 120 ms on the slowest
+# upstream (pricing), seeded; stock and fx faster so the fan-out waits on pricing.
+name: bench-lognormal
+seed: 15
+endpoints:
+  pricing: { latency: { kind: lognormal, medianMs: 40, p99Ms: 120 } }
+  stock:   { latency: { kind: lognormal, medianMs: 20, p99Ms: 60 } }
+  fx:      { latency: { kind: lognormal, medianMs: 10, p99Ms: 30 } }
+  reservations: { latency: { kind: fixed, ms: 20 } }
